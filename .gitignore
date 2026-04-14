@@ -1,0 +1,22 @@
+# Environment variables — never commit secrets
+.env
+.env.local
+frontend/.env.local
+
+# Downloaded EDGAR filings — large and re-downloadable
+sec-edgar-filings/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
