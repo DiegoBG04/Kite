@@ -32,7 +32,10 @@ CHART_PERIODS = {
     "1W": ("1h",     35),   # 5 trading days of hourly bars
     "1M": ("1day",   30),
     "3M": ("1day",   90),
+    "6M": ("1day",  180),
     "1Y": ("1week",  52),
+    "6Y": ("1month", 72),
+    "MAX": ("1month", 240),
 }
 
 
