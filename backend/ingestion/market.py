@@ -83,29 +83,35 @@ def get_portfolio_data(ticker: str) -> dict:
 
 def _get_snapshot(ticker: str, api_key: str) -> tuple[float, float]:
     """
-    Fetch current price and today's change % from the snapshot endpoint.
-    Falls back to previous close if today's session hasn't opened yet.
+    Fetch current price and today's change % using free-tier aggs endpoints.
+    Uses /prev for the previous close and /range/1/day for today's session.
+    Falls back to previous close if the market hasn't opened yet.
     """
-    url = f"{POLYGON_BASE}/v2/snapshot/locale/us/markets/stocks/tickers/{ticker}"
-    resp = requests.get(url, params={"apiKey": api_key}, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-
-    ticker_data = data.get("ticker", {})
-    if not ticker_data:
-        raise ValueError(f"No snapshot data for {ticker}")
-
-    # Try today's session close first, fall back to previous day
-    day = ticker_data.get("day", {})
-    prev_day = ticker_data.get("prevDay", {})
-
-    price = day.get("c") or prev_day.get("c") or 0
-    change_pct = ticker_data.get("todaysChangePerc") or 0
-
-    if not price:
+    # Previous trading day close
+    prev_url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/prev"
+    prev_resp = requests.get(prev_url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
+    prev_resp.raise_for_status()
+    prev_results = prev_resp.json().get("results") or []
+    if not prev_results:
         raise ValueError(f"No price data for {ticker}")
+    prev_close = float(prev_results[0]["c"])
 
-    return float(price), float(change_pct)
+    # Today's session (may be empty before market open or on weekends)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/1/day/{today}/{today}"
+    today_resp = requests.get(today_url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
+    today_resp.raise_for_status()
+    today_results = today_resp.json().get("results") or []
+
+    if today_results:
+        current_price = float(today_results[-1]["c"])
+        change_pct = ((current_price - prev_close) / prev_close) * 100
+    else:
+        # Market not yet open or weekend — show previous close, 0% change
+        current_price = prev_close
+        change_pct = 0.0
+
+    return current_price, change_pct
 
 
 def _get_name(ticker: str, api_key: str) -> str | None:
