@@ -35,7 +35,7 @@ def fetch_news(
         List of article dicts with keys:
             title, source, published_at, url, tickers
     """
-    api_key = os.getenv("NEWS_API_KEY")
+    api_key = os.getenv("NEWS_API_KEY", "").strip()
     if not api_key:
         raise ValueError("NEWS_API_KEY environment variable is not set")
 
