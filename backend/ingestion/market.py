@@ -1,50 +1,46 @@
 """
-market.py — Market Data Fetcher (Polygon.io)
+market.py — Market Data Fetcher (Twelve Data)
 
-Purpose: Pulls previous close price, sparkline, and chart data for a given
-ticker using the Polygon.io REST API (free tier — historical data only).
+Purpose: Pulls current price, percentage change, sparkline, and chart data
+for a given ticker using the Twelve Data API (free tier).
 
-Free tier limits:
-  - 5 API calls per minute
-  - Historical data only (no same-day or real-time prices)
+Free tier: 800 calls/day, 8 calls/minute.
+Supports multiple symbols in one call — very efficient for portfolio loading.
+Data is real-time delayed (15 min on free tier).
 
-To avoid hammering the rate limit on every page load, results are cached
-in memory for CACHE_TTL_SECONDS. A Railway restart clears the cache.
+Results are cached in memory for 15 minutes to avoid redundant API calls.
 
-Requires: POLYGON_API_KEY in your .env / Railway environment variables.
+Requires: TWELVE_DATA_API_KEY in your .env / Railway environment variables.
 """
 
 import logging
 import os
 import time
-from datetime import datetime, timedelta, timezone
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-POLYGON_BASE = "https://api.polygon.io"
+TWELVE_BASE = "https://api.twelvedata.com"
 
-# Cache portfolio data for 15 minutes — Polygon free tier is rate-limited
-CACHE_TTL_SECONDS = 900
+CACHE_TTL_SECONDS = 900  # 15 minutes
 _cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
-# Period definitions: (multiplier, timespan, days_back)
-# All use historical ranges (no today) to stay on free tier
+# Chart period definitions: (interval, outputsize)
 CHART_PERIODS = {
-    "1D":  ("5",  "minute",  5),   # last 5 days of 5-min bars, frontend shows latest day
-    "1W":  ("1",  "hour",    7),
-    "1M":  ("1",  "day",    35),
-    "3M":  ("1",  "day",    95),
-    "1Y":  ("1",  "week",  370),
+    "1D": ("5min",   78),   # ~1 trading day of 5-min bars
+    "1W": ("1h",     35),   # 5 trading days of hourly bars
+    "1M": ("1day",   30),
+    "3M": ("1day",   90),
+    "1Y": ("1week",  52),
 }
 
 
 def get_portfolio_data(ticker: str) -> dict:
     """
-    Fetch previous close price, sparkline, and chart data for a single ticker.
+    Fetch current price, change %, sparkline, and chart data for a single ticker.
 
-    Results are cached for CACHE_TTL_SECONDS to respect Polygon's rate limit.
+    Results are cached for CACHE_TTL_SECONDS to respect the rate limit.
 
     Args:
         ticker: Stock ticker symbol e.g. "AAPL"
@@ -53,41 +49,37 @@ def get_portfolio_data(ticker: str) -> dict:
         Dict matching PortfolioResponse schema in models.py.
 
     Raises:
-        ValueError: If POLYGON_API_KEY is not set or ticker returns no data.
+        ValueError: If TWELVE_DATA_API_KEY is not set or ticker returns no data.
     """
-    api_key = os.getenv("POLYGON_API_KEY", "").strip()
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
     if not api_key:
-        raise ValueError("POLYGON_API_KEY environment variable is not set")
+        raise ValueError("TWELVE_DATA_API_KEY environment variable is not set")
 
     ticker = ticker.upper()
 
-    # Return cached result if still fresh
     cached = _cache.get(ticker)
     if cached and cached["expires"] > time.time():
         logger.info(f"[MARKET] {ticker}: returning cached data")
         return cached["data"]
 
-    logger.info(f"[MARKET] Fetching Polygon data for {ticker}")
+    logger.info(f"[MARKET] Fetching Twelve Data for {ticker}")
 
-    # Previous trading day close (1 API call)
-    price, change_pct = _get_prev_close(ticker, api_key)
+    # --- Quote: price, change %, name (1 API call) ---
+    price, change_pct, name = _get_quote(ticker, api_key)
 
-    # Company name (1 API call)
-    name = _get_name(ticker, api_key) or ticker
-
-    # Chart data — 5 API calls (one per period)
+    # --- Chart data per period (1 API call each) ---
     chart_data: dict[str, list[float]] = {}
-    for label, (mult, timespan, days_back) in CHART_PERIODS.items():
-        chart_data[label] = _get_aggs(ticker, api_key, mult, timespan, days_back=days_back)
+    for label, (interval, outputsize) in CHART_PERIODS.items():
+        chart_data[label] = _get_time_series(ticker, api_key, interval, outputsize)
 
-    # Reuse 1M daily closes for the sparkline (no extra API call)
+    # Reuse 1M daily data for sparkline — no extra API call
     sparkline_data = chart_data["1M"][-30:]
 
     logger.info(f"[MARKET] {ticker}: ${price} ({change_pct:+.2f}%)")
 
     result = {
         "ticker": ticker,
-        "name": name,
+        "name": name or ticker,
         "price": round(price, 2),
         "change_pct": round(change_pct, 2),
         "sparkline_data": sparkline_data,
@@ -103,66 +95,60 @@ def get_portfolio_data(ticker: str) -> dict:
     return result
 
 
-def _get_prev_close(ticker: str, api_key: str) -> tuple[float, float]:
+def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:
     """
-    Fetch the previous trading day's close and compute change %.
-    Uses /v2/aggs/ticker/{ticker}/prev — available on free tier.
+    Fetch current price, percent change, and company name in one call.
+    Uses /quote endpoint which supports multiple symbols.
     """
-    url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/prev"
-    resp = requests.get(url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
+    resp = requests.get(f"{TWELVE_BASE}/quote", params={
+        "symbol": ticker,
+        "apikey": api_key,
+    }, timeout=10)
     resp.raise_for_status()
-    results = resp.json().get("results") or []
-    if not results:
-        raise ValueError(f"No previous close data for {ticker}")
+    data = resp.json()
 
-    bar = results[0]
-    close = float(bar["c"])
-    open_ = float(bar["o"])
-    change_pct = ((close - open_) / open_) * 100 if open_ else 0.0
+    if data.get("status") == "error":
+        raise ValueError(f"Twelve Data error for {ticker}: {data.get('message')}")
 
-    return close, change_pct
+    price = float(data.get("close") or data.get("previous_close") or 0)
+    change_pct = float(data.get("percent_change") or 0)
+    name = data.get("name") or ticker
 
+    if not price:
+        raise ValueError(f"No price data returned for {ticker}")
 
-def _get_name(ticker: str, api_key: str) -> str | None:
-    """Fetch company name from the reference/tickers endpoint."""
-    try:
-        url = f"{POLYGON_BASE}/v3/reference/tickers/{ticker}"
-        resp = requests.get(url, params={"apiKey": api_key}, timeout=10)
-        resp.raise_for_status()
-        return resp.json().get("results", {}).get("name")
-    except Exception as exc:
-        logger.warning(f"[MARKET] Could not fetch name for {ticker}: {exc}")
-        return None
+    return price, change_pct, name
 
 
-def _get_aggs(
+def _get_time_series(
     ticker: str,
     api_key: str,
-    multiplier: str,
-    timespan: str,
-    days_back: int,
+    interval: str,
+    outputsize: int,
 ) -> list[float]:
     """
-    Fetch aggregate close prices for a historical date range.
-    Ends yesterday to stay within the free tier (no same-day data).
+    Fetch historical close prices for a given interval and output size.
+    Returns closes in chronological order (oldest → newest).
     """
     try:
-        now = datetime.now(timezone.utc)
-        to_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")   # yesterday
-        from_date = (now - timedelta(days=days_back)).strftime("%Y-%m-%d")
-
-        url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from_date}/{to_date}"
-        resp = requests.get(url, params={
-            "adjusted": "true",
-            "sort": "asc",
-            "limit": 50000,
-            "apiKey": api_key,
+        resp = requests.get(f"{TWELVE_BASE}/time_series", params={
+            "symbol": ticker,
+            "interval": interval,
+            "outputsize": outputsize,
+            "apikey": api_key,
         }, timeout=10)
         resp.raise_for_status()
+        data = resp.json()
 
-        results = resp.json().get("results") or []
-        return [round(float(r["c"]), 2) for r in results]
+        if data.get("status") == "error":
+            logger.warning(f"[MARKET] Twelve Data error ({interval}) for {ticker}: {data.get('message')}")
+            return []
+
+        values = data.get("values") or []
+        # API returns newest first — reverse to chronological order
+        closes = [round(float(v["close"]), 2) for v in reversed(values)]
+        return closes
 
     except Exception as exc:
-        logger.warning(f"[MARKET] Could not fetch {timespan} aggs for {ticker}: {exc}")
+        logger.warning(f"[MARKET] Could not fetch {interval} series for {ticker}: {exc}")
         return []
