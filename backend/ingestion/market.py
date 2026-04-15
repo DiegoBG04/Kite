@@ -1,16 +1,22 @@
 """
 market.py — Market Data Fetcher (Polygon.io)
 
-Purpose: Pulls current price, percentage change, sparkline data, and chart
-data for a given ticker using the Polygon.io REST API (free tier, 15-min
-delayed). Replaces yfinance which is blocked by Yahoo Finance on cloud IPs.
+Purpose: Pulls previous close price, sparkline, and chart data for a given
+ticker using the Polygon.io REST API (free tier — historical data only).
 
-Free tier: unlimited calls, 15-minute delayed data.
+Free tier limits:
+  - 5 API calls per minute
+  - Historical data only (no same-day or real-time prices)
+
+To avoid hammering the rate limit on every page load, results are cached
+in memory for CACHE_TTL_SECONDS. A Railway restart clears the cache.
+
 Requires: POLYGON_API_KEY in your .env / Railway environment variables.
 """
 
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -19,20 +25,26 @@ logger = logging.getLogger(__name__)
 
 POLYGON_BASE = "https://api.polygon.io"
 
+# Cache portfolio data for 15 minutes — Polygon free tier is rate-limited
+CACHE_TTL_SECONDS = 900
+_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
+
 # Period definitions: (multiplier, timespan, days_back)
+# All use historical ranges (no today) to stay on free tier
 CHART_PERIODS = {
-    "1D": ("5",  "minute", 1),
-    "1W": ("1",  "hour",   5),
-    "1M": ("1",  "day",   30),
-    "3M": ("1",  "day",   90),
-    "1Y": ("1",  "week", 365),
+    "1D":  ("5",  "minute",  5),   # last 5 days of 5-min bars, frontend shows latest day
+    "1W":  ("1",  "hour",    7),
+    "1M":  ("1",  "day",    35),
+    "3M":  ("1",  "day",    95),
+    "1Y":  ("1",  "week",  370),
 }
 
 
 def get_portfolio_data(ticker: str) -> dict:
     """
-    Fetch current price, change %, sparkline, chart data, and company name
-    for a single ticker using Polygon.io.
+    Fetch previous close price, sparkline, and chart data for a single ticker.
+
+    Results are cached for CACHE_TTL_SECONDS to respect Polygon's rate limit.
 
     Args:
         ticker: Stock ticker symbol e.g. "AAPL"
@@ -48,25 +60,32 @@ def get_portfolio_data(ticker: str) -> dict:
         raise ValueError("POLYGON_API_KEY environment variable is not set")
 
     ticker = ticker.upper()
+
+    # Return cached result if still fresh
+    cached = _cache.get(ticker)
+    if cached and cached["expires"] > time.time():
+        logger.info(f"[MARKET] {ticker}: returning cached data")
+        return cached["data"]
+
     logger.info(f"[MARKET] Fetching Polygon data for {ticker}")
 
-    # --- Snapshot: current price + today's change ---
-    price, change_pct = _get_snapshot(ticker, api_key)
+    # Previous trading day close (1 API call)
+    price, change_pct = _get_prev_close(ticker, api_key)
 
-    # --- Company name from reference endpoint ---
+    # Company name (1 API call)
     name = _get_name(ticker, api_key) or ticker
 
-    # --- Sparkline: last 30 trading days (daily closes) ---
-    sparkline_data = _get_aggs(ticker, api_key, "1", "day", days_back=35)[-30:]
-
-    # --- Chart data per time period ---
+    # Chart data — 5 API calls (one per period)
     chart_data: dict[str, list[float]] = {}
     for label, (mult, timespan, days_back) in CHART_PERIODS.items():
         chart_data[label] = _get_aggs(ticker, api_key, mult, timespan, days_back=days_back)
 
+    # Reuse 1M daily closes for the sparkline (no extra API call)
+    sparkline_data = chart_data["1M"][-30:]
+
     logger.info(f"[MARKET] {ticker}: ${price} ({change_pct:+.2f}%)")
 
-    return {
+    result = {
         "ticker": ticker,
         "name": name,
         "price": round(price, 2),
@@ -80,38 +99,28 @@ def get_portfolio_data(ticker: str) -> dict:
         "yahoo_url": f"https://finance.yahoo.com/quote/{ticker}",
     }
 
+    _cache[ticker] = {"data": result, "expires": time.time() + CACHE_TTL_SECONDS}
+    return result
 
-def _get_snapshot(ticker: str, api_key: str) -> tuple[float, float]:
+
+def _get_prev_close(ticker: str, api_key: str) -> tuple[float, float]:
     """
-    Fetch current price and today's change % using free-tier aggs endpoints.
-    Uses /prev for the previous close and /range/1/day for today's session.
-    Falls back to previous close if the market hasn't opened yet.
+    Fetch the previous trading day's close and compute change %.
+    Uses /v2/aggs/ticker/{ticker}/prev — available on free tier.
     """
-    # Previous trading day close
-    prev_url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/prev"
-    prev_resp = requests.get(prev_url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
-    prev_resp.raise_for_status()
-    prev_results = prev_resp.json().get("results") or []
-    if not prev_results:
-        raise ValueError(f"No price data for {ticker}")
-    prev_close = float(prev_results[0]["c"])
+    url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/prev"
+    resp = requests.get(url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
+    resp.raise_for_status()
+    results = resp.json().get("results") or []
+    if not results:
+        raise ValueError(f"No previous close data for {ticker}")
 
-    # Today's session (may be empty before market open or on weekends)
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    today_url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/1/day/{today}/{today}"
-    today_resp = requests.get(today_url, params={"adjusted": "true", "apiKey": api_key}, timeout=10)
-    today_resp.raise_for_status()
-    today_results = today_resp.json().get("results") or []
+    bar = results[0]
+    close = float(bar["c"])
+    open_ = float(bar["o"])
+    change_pct = ((close - open_) / open_) * 100 if open_ else 0.0
 
-    if today_results:
-        current_price = float(today_results[-1]["c"])
-        change_pct = ((current_price - prev_close) / prev_close) * 100
-    else:
-        # Market not yet open or weekend — show previous close, 0% change
-        current_price = prev_close
-        change_pct = 0.0
-
-    return current_price, change_pct
+    return close, change_pct
 
 
 def _get_name(ticker: str, api_key: str) -> str | None:
@@ -134,20 +143,13 @@ def _get_aggs(
     days_back: int,
 ) -> list[float]:
     """
-    Fetch aggregate close prices for a given time range.
-
-    Args:
-        multiplier: Size of the aggregate e.g. "1", "5"
-        timespan:   "minute", "hour", "day", "week"
-        days_back:  How many calendar days back to start from
-
-    Returns:
-        List of close prices in chronological order.
+    Fetch aggregate close prices for a historical date range.
+    Ends yesterday to stay within the free tier (no same-day data).
     """
     try:
         now = datetime.now(timezone.utc)
+        to_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")   # yesterday
         from_date = (now - timedelta(days=days_back)).strftime("%Y-%m-%d")
-        to_date = now.strftime("%Y-%m-%d")
 
         url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from_date}/{to_date}"
         resp = requests.get(url, params={
@@ -162,5 +164,5 @@ def _get_aggs(
         return [round(float(r["c"]), 2) for r in results]
 
     except Exception as exc:
-        logger.warning(f"[MARKET] Could not fetch aggs for {ticker} ({timespan}): {exc}")
+        logger.warning(f"[MARKET] Could not fetch {timespan} aggs for {ticker}: {exc}")
         return []
