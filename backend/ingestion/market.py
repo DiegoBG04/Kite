@@ -1,51 +1,38 @@
 """
-market.py — Market Data Fetcher (yfinance)
+market.py — Market Data Fetcher (Polygon.io)
 
-Purpose: Pulls current price, percentage change, sparkline data, and key
-financial metrics (P/E ratio, revenue change) for a given ticker using
-yfinance. This data feeds StockRow, StockChart, and MetricsRow on the
-frontend dashboard.
+Purpose: Pulls current price, percentage change, sparkline data, and chart
+data for a given ticker using the Polygon.io REST API (free tier, 15-min
+delayed). Replaces yfinance which is blocked by Yahoo Finance on cloud IPs.
 
-Unlike the EDGAR/news pipeline, market data is NOT embedded into pgvector.
-It is fetched fresh on each request directly from Yahoo Finance.
-
-Uses fast_info for price data (lighter endpoint, less rate-limiting) and
-yf.download() for historical price history (separate endpoint from info).
+Free tier: unlimited calls, 15-minute delayed data.
+Requires: POLYGON_API_KEY in your .env / Railway environment variables.
 """
 
 import logging
+import os
+from datetime import datetime, timedelta, timezone
+
 import requests
-import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-# Browser-like headers so Yahoo Finance doesn't block our requests
-_SESSION = requests.Session()
-_SESSION.headers.update({
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-})
+POLYGON_BASE = "https://api.polygon.io"
 
-# Period definitions for StockChart time buttons
-# (period string for yf.download, interval for candle size)
+# Period definitions: (multiplier, timespan, days_back)
 CHART_PERIODS = {
-    "1D": ("1d", "5m"),
-    "1W": ("5d", "1h"),
-    "1M": ("1mo", "1d"),
-    "3M": ("3mo", "1d"),
-    "1Y": ("1y", "1wk"),
+    "1D": ("5",  "minute", 1),
+    "1W": ("1",  "hour",   5),
+    "1M": ("1",  "day",   30),
+    "3M": ("1",  "day",   90),
+    "1Y": ("1",  "week", 365),
 }
 
 
 def get_portfolio_data(ticker: str) -> dict:
     """
-    Fetch current price, change %, sparkline, chart data, and metrics
-    for a single ticker.
+    Fetch current price, change %, sparkline, chart data, and company name
+    for a single ticker using Polygon.io.
 
     Args:
         ticker: Stock ticker symbol e.g. "AAPL"
@@ -54,93 +41,120 @@ def get_portfolio_data(ticker: str) -> dict:
         Dict matching PortfolioResponse schema in models.py.
 
     Raises:
-        ValueError: If the ticker is invalid or yfinance returns no data.
+        ValueError: If POLYGON_API_KEY is not set or ticker returns no data.
     """
+    api_key = os.getenv("POLYGON_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("POLYGON_API_KEY environment variable is not set")
+
     ticker = ticker.upper()
-    logger.info(f"[MARKET] Fetching data for {ticker}")
+    logger.info(f"[MARKET] Fetching Polygon data for {ticker}")
 
-    # Pass the browser-like session so Yahoo doesn't block the request
-    stock = yf.Ticker(ticker, session=_SESSION)
+    # --- Snapshot: current price + today's change ---
+    price, change_pct = _get_snapshot(ticker, api_key)
 
-    # --- Price data via history() — uses the session, avoids rate-limit blocks ---
-    try:
-        recent = stock.history(period="5d")
-        if recent.empty:
-            raise ValueError(f"No price data returned for {ticker} — ticker may be invalid")
-        closes = recent["Close"].dropna().values.flatten()
-        current_price = float(closes[-1])
-        previous_close = float(closes[-2]) if len(closes) >= 2 else current_price
-    except ValueError:
-        raise
-    except Exception as exc:
-        raise ValueError(f"Could not fetch price data for {ticker}: {exc}")
+    # --- Company name from reference endpoint ---
+    name = _get_name(ticker, api_key) or ticker
 
-    change_pct = 0.0
-    if previous_close and previous_close != 0:
-        change_pct = ((current_price - previous_close) / previous_close) * 100
+    # --- Sparkline: last 30 trading days (daily closes) ---
+    sparkline_data = _get_aggs(ticker, api_key, "1", "day", days_back=35)[-30:]
 
-    # --- Company name and P/E ratio from info (best-effort, may be rate-limited) ---
-    pe_ratio = None
-    try:
-        info = stock.info
-        name = info.get("longName") or info.get("shortName") or ticker
-        pe_ratio = info.get("trailingPE") or info.get("forwardPE") or None
-    except Exception:
-        # info endpoint gets rate-limited more aggressively — not critical
-        logger.warning(f"[MARKET] Could not fetch info for {ticker} (rate limited?) — using ticker as name")
-        name = ticker
-
-    # --- Revenue change YoY (best-effort) ---
-    revenue_change = None
-    try:
-        financials = stock.financials
-        if financials is not None and not financials.empty and "Total Revenue" in financials.index:
-            revenues = financials.loc["Total Revenue"].dropna()
-            if len(revenues) >= 2:
-                recent = revenues.iloc[0]
-                prior = revenues.iloc[1]
-                if prior and prior != 0:
-                    revenue_change = ((recent - prior) / abs(prior)) * 100
-    except Exception:
-        pass
-
-    # --- Historical price data via yf.download() (different endpoint from info) ---
-    # Sparkline: last 30 trading days
-    sparkline_data: list[float] = []
-    try:
-        hist = stock.history(period="1mo")
-        if not hist.empty:
-            closes = hist["Close"].tail(30)
-            sparkline_data = [round(float(v), 2) for v in closes.values.flatten()]
-    except Exception as exc:
-        logger.warning(f"[MARKET] Could not fetch sparkline for {ticker}: {exc}")
-
-    # --- Chart data for each time period button ---
+    # --- Chart data per time period ---
     chart_data: dict[str, list[float]] = {}
-    for period_label, (period, interval) in CHART_PERIODS.items():
-        try:
-            hist = stock.history(period=period, interval=interval)
-            if not hist.empty:
-                chart_data[period_label] = [round(float(v), 2) for v in hist["Close"].values.flatten()]
-            else:
-                chart_data[period_label] = []
-        except Exception as exc:
-            logger.warning(f"[MARKET] Could not fetch {period_label} chart for {ticker}: {exc}")
-            chart_data[period_label] = []
+    for label, (mult, timespan, days_back) in CHART_PERIODS.items():
+        chart_data[label] = _get_aggs(ticker, api_key, mult, timespan, days_back=days_back)
 
-    result = {
+    logger.info(f"[MARKET] {ticker}: ${price} ({change_pct:+.2f}%)")
+
+    return {
         "ticker": ticker,
         "name": name,
-        "price": round(current_price, 2),
+        "price": round(price, 2),
         "change_pct": round(change_pct, 2),
         "sparkline_data": sparkline_data,
         "chart_data": chart_data,
-        "pe_ratio": round(pe_ratio, 2) if pe_ratio else None,
-        "revenue_change": round(revenue_change, 2) if revenue_change else None,
+        "pe_ratio": None,
+        "revenue_change": None,
         "risk_flags": 0,
         "last_filing": None,
         "yahoo_url": f"https://finance.yahoo.com/quote/{ticker}",
     }
 
-    logger.info(f"[MARKET] {ticker}: ${result['price']} ({result['change_pct']:+.2f}%)")
-    return result
+
+def _get_snapshot(ticker: str, api_key: str) -> tuple[float, float]:
+    """
+    Fetch current price and today's change % from the snapshot endpoint.
+    Falls back to previous close if today's session hasn't opened yet.
+    """
+    url = f"{POLYGON_BASE}/v2/snapshot/locale/us/markets/stocks/tickers/{ticker}"
+    resp = requests.get(url, params={"apiKey": api_key}, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+
+    ticker_data = data.get("ticker", {})
+    if not ticker_data:
+        raise ValueError(f"No snapshot data for {ticker}")
+
+    # Try today's session close first, fall back to previous day
+    day = ticker_data.get("day", {})
+    prev_day = ticker_data.get("prevDay", {})
+
+    price = day.get("c") or prev_day.get("c") or 0
+    change_pct = ticker_data.get("todaysChangePerc") or 0
+
+    if not price:
+        raise ValueError(f"No price data for {ticker}")
+
+    return float(price), float(change_pct)
+
+
+def _get_name(ticker: str, api_key: str) -> str | None:
+    """Fetch company name from the reference/tickers endpoint."""
+    try:
+        url = f"{POLYGON_BASE}/v3/reference/tickers/{ticker}"
+        resp = requests.get(url, params={"apiKey": api_key}, timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("results", {}).get("name")
+    except Exception as exc:
+        logger.warning(f"[MARKET] Could not fetch name for {ticker}: {exc}")
+        return None
+
+
+def _get_aggs(
+    ticker: str,
+    api_key: str,
+    multiplier: str,
+    timespan: str,
+    days_back: int,
+) -> list[float]:
+    """
+    Fetch aggregate close prices for a given time range.
+
+    Args:
+        multiplier: Size of the aggregate e.g. "1", "5"
+        timespan:   "minute", "hour", "day", "week"
+        days_back:  How many calendar days back to start from
+
+    Returns:
+        List of close prices in chronological order.
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        from_date = (now - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        to_date = now.strftime("%Y-%m-%d")
+
+        url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from_date}/{to_date}"
+        resp = requests.get(url, params={
+            "adjusted": "true",
+            "sort": "asc",
+            "limit": 50000,
+            "apiKey": api_key,
+        }, timeout=10)
+        resp.raise_for_status()
+
+        results = resp.json().get("results") or []
+        return [round(float(r["c"]), 2) for r in results]
+
+    except Exception as exc:
+        logger.warning(f"[MARKET] Could not fetch aggs for {ticker} ({timespan}): {exc}")
+        return []
