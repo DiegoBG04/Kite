@@ -48,11 +48,7 @@ app = FastAPI(
 # Update the production Railway URL here before deploying.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",                    # Vite dev server
-        "https://kite-zeta-rose.vercel.app",        # Vercel production
-        "https://*.vercel.app",                     # Vercel preview deployments
-    ],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
