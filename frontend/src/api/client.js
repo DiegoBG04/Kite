@@ -96,6 +96,17 @@ export async function getNews({ tickers = [], filter = "portfolio" } = {}) {
 }
 
 /**
+ * Fetch quarterly and annual income statement data for a ticker.
+ * Calls GET /financials/{ticker}
+ *
+ * @param {string} ticker - e.g. "AAPL"
+ * @returns {Promise<Object>} FinancialsResponse: { ticker, quarterly, annual }
+ */
+export async function getFinancials(ticker) {
+  return apiFetch(`/financials/${ticker}`);
+}
+
+/**
  * Trigger ingestion for a list of tickers.
  * Calls POST /ingest
  *

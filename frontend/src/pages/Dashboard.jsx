@@ -7,9 +7,7 @@ import { getPortfolio, getBriefing } from "../api/client";
 import BriefingBox from "../components/BriefingBox";
 import StockRow from "../components/StockRow";
 import ChatBox from "../components/ChatBox";
-import StockChart from "../components/StockChart";
-import InsightCard from "../components/InsightCard";
-import MetricsRow from "../components/MetricsRow";
+import CompanyDrawer from "../components/CompanyDrawer";
 
 const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA"];
 
@@ -17,7 +15,7 @@ export default function Dashboard() {
   const [portfolio, setPortfolio] = useState([]);
   const [briefing, setBriefing] = useState({ items: [] });
   const [selected, setSelected] = useState(null);
-  const [period, setPeriod] = useState("1M");
+  const [drawerStock, setDrawerStock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fetched, setFetched] = useState(false);
@@ -89,7 +87,7 @@ export default function Dashboard() {
               change={stock.change_pct}
               sparklineData={stock.sparkline_data}
               isSelected={selected?.ticker === stock.ticker}
-              onClick={() => setSelected(stock)}
+              onClick={() => { setSelected(stock); setDrawerStock(stock); }}
             />
           ))}
         </div>
@@ -99,34 +97,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "24px", gap: "16px" }}>
-        {selected ? (
-          <>
-            <StockChart
-              ticker={selected.ticker}
-              name={selected.name}
-              price={selected.price}
-              change={selected.change_pct}
-              chartData={selected.chart_data}
-              period={period}
-              onPeriodChange={setPeriod}
-            />
-            <MetricsRow
-              pe={selected.pe_ratio}
-              revenueChange={selected.revenue_change}
-              riskFlags={selected.risk_flags}
-              lastFiling={selected.last_filing}
-            />
-            <InsightCard insight={null} sources={[]} />
-          </>
-        ) : (
-          <div style={{ color: "var(--kite-muted)", paddingTop: "80px", textAlign: "center", fontFamily: "var(--font-display)" }}>
-            Select a stock to view details.
-          </div>
-        )}
+      {/* Right panel — prompt to open company view */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "10px",
+        color: "var(--kite-muted)",
+      }}>
+        <div style={{ fontSize: "32px", opacity: 0.25 }}>↗</div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "var(--kite-heading)", opacity: 0.5 }}>
+          Select a stock to open its analytics
+        </div>
+        <div style={{ fontSize: "12px", opacity: 0.6 }}>
+          Price · Revenue · EBITDA · Net Income · News
+        </div>
       </div>
 
+      <CompanyDrawer
+        stock={drawerStock}
+        onClose={() => setDrawerStock(null)}
+        portfolioData={Object.fromEntries(portfolio.map((s) => [s.ticker, s]))}
+      />
     </div>
   );
 }

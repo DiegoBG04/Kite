@@ -26,6 +26,9 @@ TWELVE_BASE = "https://api.twelvedata.com"
 CACHE_TTL_SECONDS = 900  # 15 minutes
 _cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
+FIN_TTL_SECONDS = 3600 * 6  # 6 hours — financial statements change rarely
+_fin_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
+
 # Chart period definitions: (interval, outputsize)
 CHART_PERIODS = {
     "1D": ("5min",   78),   # ~1 trading day of 5-min bars
@@ -96,6 +99,68 @@ def get_portfolio_data(ticker: str) -> dict:
 
     _cache[ticker] = {"data": result, "expires": time.time() + CACHE_TTL_SECONDS}
     return result
+
+
+def get_financials(ticker: str) -> dict:
+    """
+    Fetch quarterly and annual income statement data for a ticker.
+    Uses Twelve Data /income_statement endpoint.
+
+    Returns:
+        Dict with keys: ticker, quarterly, annual
+        Each period list contains: date, revenue, gross_profit, ebitda, net_income
+    """
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TWELVE_DATA_API_KEY not set")
+
+    ticker = ticker.upper()
+    cached = _fin_cache.get(ticker)
+    if cached and cached["expires"] > time.time():
+        logger.info(f"[FINANCIALS] {ticker}: returning cached data")
+        return cached["data"]
+
+    result: dict = {"ticker": ticker, "quarterly": [], "annual": []}
+
+    for period in ("quarterly", "annual"):
+        try:
+            resp = requests.get(f"{TWELVE_BASE}/income_statement", params={
+                "symbol": ticker,
+                "period": period,
+                "apikey": api_key,
+            }, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+
+            if data.get("status") == "error":
+                logger.warning(f"[FINANCIALS] {ticker} {period}: {data.get('message')}")
+                continue
+
+            rows = (data.get(period) or [])[:8]  # last 8 periods
+            result[period] = [
+                {
+                    "date": row.get("fiscal_date", ""),
+                    "revenue": _safe_float(row.get("total_revenue")),
+                    "gross_profit": _safe_float(row.get("gross_profit")),
+                    "ebitda": _safe_float(row.get("ebitda")),
+                    "net_income": _safe_float(row.get("net_income")),
+                }
+                for row in rows
+            ]
+            logger.info(f"[FINANCIALS] {ticker} {period}: {len(rows)} periods fetched")
+
+        except Exception as exc:
+            logger.warning(f"[FINANCIALS] Failed {ticker} {period}: {exc}")
+
+    _fin_cache[ticker] = {"data": result, "expires": time.time() + FIN_TTL_SECONDS}
+    return result
+
+
+def _safe_float(v) -> float | None:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
 
 
 def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:

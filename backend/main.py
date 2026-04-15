@@ -33,6 +33,7 @@ from backend.models import (
     QueryResponse,
     PortfolioResponse,
     BriefingResponse,
+    FinancialsResponse,
     NewsResponse,
 )
 
@@ -253,6 +254,27 @@ async def portfolio(ticker: str) -> PortfolioResponse:
         last_filing=None,
         yahoo_url=f"https://finance.yahoo.com/quote/{ticker}",
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /financials/{ticker}
+# ---------------------------------------------------------------------------
+
+@app.get("/financials/{ticker}", response_model=FinancialsResponse)
+async def financials_route(ticker: str) -> FinancialsResponse:
+    """
+    Return quarterly and annual income statement data for a ticker.
+    Pulls revenue, gross profit, EBITDA, and net income from Twelve Data.
+    Returns empty lists if the API fails (e.g. free-tier restriction).
+    """
+    from backend.ingestion.market import get_financials
+    ticker = ticker.upper()
+    try:
+        data = get_financials(ticker)
+        return FinancialsResponse(**data)
+    except Exception as exc:
+        logger.warning(f"[FINANCIALS] Failed for {ticker}: {exc}")
+        return FinancialsResponse(ticker=ticker, quarterly=[], annual=[])
 
 
 # ---------------------------------------------------------------------------

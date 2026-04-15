@@ -113,6 +113,30 @@ class PortfolioResponse(BaseModel):
 # /news — GET
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# /financials/{ticker} — GET
+# ---------------------------------------------------------------------------
+
+class FinancialPeriod(BaseModel):
+    """One period (quarter or fiscal year) of income statement data."""
+    date: str
+    revenue: Optional[float] = None
+    gross_profit: Optional[float] = None
+    ebitda: Optional[float] = None
+    net_income: Optional[float] = None
+
+
+class FinancialsResponse(BaseModel):
+    """Response from GET /financials/{ticker}."""
+    ticker: str
+    quarterly: list[FinancialPeriod]
+    annual: list[FinancialPeriod]
+
+
+# ---------------------------------------------------------------------------
+# /news — GET
+# ---------------------------------------------------------------------------
+
 class NewsItem(BaseModel):
     """One news article with its Kite-generated AI summary."""
     title: str
