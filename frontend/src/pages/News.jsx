@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getNews } from "../api/client";
+import { getNews, getPortfolio } from "../api/client";
 import NewsCard from "../components/NewsCard";
 
 const FILTER_OPTIONS = ["portfolio", "trending", "top", "recent"];
@@ -13,8 +13,18 @@ export default function News() {
   const [filter, setFilter] = useState("portfolio");
   const [tickerFilter, setTickerFilter] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [portfolioData, setPortfolioData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Fetch portfolio data once for ticker % change badges
+  useEffect(() => {
+    getPortfolio(DEFAULT_TICKERS).then((results) => {
+      const map = {};
+      results.forEach((stock) => { map[stock.ticker] = stock; });
+      setPortfolioData(map);
+    }).catch(() => {/* silently skip if unavailable */});
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -100,6 +110,8 @@ export default function News() {
               tickers={article.tickers}
               summary={article.summary}
               url={article.url}
+              imageUrl={article.image_url}
+              portfolioData={portfolioData}
             />
           ))}
         </div>

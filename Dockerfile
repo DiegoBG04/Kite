@@ -1,12 +1,15 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies first — this layer is cached until requirements.txt changes
+# Install dependencies with BuildKit pip cache — persists across builds
+# even when the base image changes
 COPY backend/requirements.txt backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r backend/requirements.txt
 
-# Copy the rest of the code — changes here don't bust the deps cache
+# Copy the rest of the code
 COPY . .
 
 CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"]

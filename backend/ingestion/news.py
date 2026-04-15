@@ -114,5 +114,6 @@ def _format_article(raw: dict, tickers: list[str]) -> dict:
         "source": source,
         "published_at": published_at,
         "url": raw.get("url") or "",
+        "image_url": raw.get("urlToImage") or "",
         "tickers": tickers,
     }
