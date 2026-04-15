@@ -293,6 +293,15 @@ async def news(
     TODO: Implement news fetching in ingestion/news.py (Step 5+).
     Currently returns an empty feed so the frontend can be built and tested.
     """
+    from backend.ingestion.news import fetch_news
+
     ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
-    logger.info(f"[NEWS] Request for tickers={ticker_list} filter={filter} (stub response)")
-    return NewsResponse(items=[], filter=filter)
+    logger.info(f"[NEWS] Request for tickers={ticker_list} filter={filter}")
+
+    try:
+        items = fetch_news(tickers=ticker_list, filter_type=filter)
+    except Exception as exc:
+        logger.error(f"[NEWS] Failed to fetch news: {exc}")
+        items = []
+
+    return NewsResponse(items=items, filter=filter)
