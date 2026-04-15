@@ -1,15 +1,10 @@
 /**
  * News.jsx — News Feed Page
- *
- * Purpose: Displays a filterable news feed of articles relevant to the
- * user's portfolio. Filters: My Portfolio | Trending | Top | Recent.
- * Additional per-ticker filter buttons let the user focus on one stock.
- *
- * Calls GET /news?tickers=...&filter=... via client.getNews().
  */
 
 import { useState, useEffect } from "react";
 import { getNews } from "../api/client";
+import NewsCard from "../components/NewsCard";
 
 const FILTER_OPTIONS = ["portfolio", "trending", "top", "recent"];
 const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA"];
@@ -38,58 +33,78 @@ export default function News() {
     load();
   }, [filter, tickerFilter]);
 
+  const filterBtn = (label, isActive, onClick) => (
+    <button
+      key={label}
+      onClick={onClick}
+      style={{
+        fontSize: "12px",
+        fontWeight: isActive ? "700" : "400",
+        color: isActive ? "var(--kite-amber-dark)" : "var(--kite-muted)",
+        background: isActive ? "var(--kite-amber-wash)" : "transparent",
+        border: isActive ? "1px solid var(--kite-amber-dark)" : "1px solid transparent",
+        borderRadius: "100px",
+        padding: "4px 12px",
+        cursor: "pointer",
+        transition: "all 0.15s",
+      }}
+    >
+      {label.charAt(0).toUpperCase() + label.slice(1)}
+    </button>
+  );
+
   return (
-    <div style={{ padding: "16px" }}>
-      {/* Feed type filter buttons */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-        {FILTER_OPTIONS.map((f) => (
-          <button key={f} onClick={() => setFilter(f)} disabled={f === filter}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-      </div>
+    <div style={{ height: "100%", overflowY: "auto", padding: "24px", background: "var(--kite-cream)" }}>
+      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
 
-      {/* Per-ticker filter buttons */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        <button onClick={() => setTickerFilter(null)} disabled={tickerFilter === null}>
-          All
-        </button>
-        {DEFAULT_TICKERS.map((t) => (
-          <button key={t} onClick={() => setTickerFilter(t)} disabled={tickerFilter === t}>
-            {t}
-          </button>
-        ))}
-      </div>
+        {/* Page title */}
+        <h1 style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "24px",
+          color: "var(--kite-heading)",
+          marginBottom: "20px",
+          fontWeight: "normal",
+        }}>
+          News
+        </h1>
 
-      {loading && <div>Loading news...</div>}
-      {error && <div style={{ color: "red" }}>Error: {error}</div>}
+        {/* Filter bar */}
+        <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
+          {FILTER_OPTIONS.map((f) => filterBtn(f, filter === f, () => setFilter(f)))}
+        </div>
 
-      {!loading && !error && articles.length === 0 && (
-        <div style={{ color: "#888" }}>No articles found.</div>
-      )}
+        {/* Ticker filter */}
+        <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "wrap" }}>
+          {filterBtn("All", tickerFilter === null, () => setTickerFilter(null))}
+          {DEFAULT_TICKERS.map((t) => filterBtn(t, tickerFilter === t, () => setTickerFilter(t)))}
+        </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {articles.map((article, i) => (
-          <div key={i} style={{ borderBottom: "1px solid #eee", paddingBottom: "12px" }}>
-            <a href={article.url} target="_blank" rel="noreferrer" style={{ fontWeight: "bold", textDecoration: "none" }}>
-              {article.title}
-            </a>
-            <div style={{ fontSize: "0.85em", color: "#888", marginTop: "4px" }}>
-              {article.source} · {formatDate(article.published_at)}
-              {article.tickers.length > 0 && ` · ${article.tickers.join(", ")}`}
-            </div>
-          </div>
-        ))}
+        {/* Content */}
+        {loading && (
+          <div style={{ color: "var(--kite-muted)", fontSize: "13px" }}>Loading news…</div>
+        )}
+        {error && (
+          <div style={{ color: "var(--kite-negative)", fontSize: "13px" }}>Error: {error}</div>
+        )}
+        {!loading && !error && articles.length === 0 && (
+          <div style={{ color: "var(--kite-muted)", fontSize: "13px" }}>No articles found.</div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {articles.map((article, i) => (
+            <NewsCard
+              key={i}
+              title={article.title}
+              source={article.source}
+              publishedAt={article.published_at}
+              tickers={article.tickers}
+              summary={article.summary}
+              url={article.url}
+            />
+          ))}
+        </div>
+
       </div>
     </div>
   );
-}
-
-function formatDate(isoString) {
-  if (!isoString) return "";
-  try {
-    return new Date(isoString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  } catch {
-    return isoString;
-  }
 }

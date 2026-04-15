@@ -1,27 +1,32 @@
 /**
  * SourcePill.jsx — Clickable Source Citation Badge
- *
- * Purpose: Renders a single source citation as a small clickable badge.
- * Opens the source URL in a new tab. Shows a timestamp if the source is
- * an earnings call, or a date if it's a news article.
- *
- * Used by: InsightCard.jsx, ChatBox.jsx
- *
- * Props:
- *   label       (string)  — e.g. "10-K FY2024"
- *   url         (string)  — opens in new tab on click
- *   timestamp   (string)  — optional, earnings call time e.g. "14:32"
- *   publishedAt (string)  — optional, news date e.g. "Apr 12"
- *
- * TODO (Step 8): Implement component.
  */
 
 export default function SourcePill({ label, url, timestamp, publishedAt }) {
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer">
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        padding: "3px 8px",
+        background: "var(--kite-cream)",
+        border: "1px solid var(--kite-border)",
+        borderRadius: "100px",
+        fontFamily: "var(--font-mono)",
+        fontSize: "11px",
+        color: "var(--kite-amber-dark)",
+        textDecoration: "none",
+        whiteSpace: "nowrap",
+        transition: "border-color 0.15s",
+      }}
+    >
       {label}
-      {timestamp && ` · ${timestamp}`}
-      {publishedAt && ` · ${publishedAt}`}
+      {timestamp && <span style={{ color: "var(--kite-muted)" }}>· {timestamp}</span>}
+      {publishedAt && <span style={{ color: "var(--kite-muted)" }}>· {publishedAt}</span>}
     </a>
   );
 }

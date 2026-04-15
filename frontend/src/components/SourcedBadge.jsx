@@ -1,17 +1,27 @@
 /**
  * SourcedBadge.jsx — "SOURCED" Trust Indicator Badge
  *
- * Purpose: A static badge that appears whenever Kite's answer is backed
- * by at least one cited source (sourced: true in QueryResponse).
- * Signals to the user that the information is traceable, not hallucinated.
- *
- * Used by: InsightCard.jsx, ChatBox.jsx
- *
- * Props: none
- *
- * TODO (Step 8): Style the badge (the design pass will handle this).
+ * Amber wash background, amber border — signals every Kite output
+ * is traceable to a real document, not hallucinated.
  */
 
 export default function SourcedBadge() {
-  return <span>SOURCED</span>;
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "2px 8px",
+      background: "var(--kite-amber-wash)",
+      border: "1px solid var(--kite-amber-dark)",
+      borderRadius: "100px",
+      fontFamily: "var(--font-body)",
+      fontSize: "10px",
+      fontWeight: "700",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: "var(--kite-amber-dark)",
+    }}>
+      Sourced
+    </span>
+  );
 }

@@ -1,40 +1,61 @@
 /**
  * StockRow.jsx — Stock List Row with Sparkline
- *
- * Purpose: Renders one row in the portfolio stock list on the Dashboard.
- * Shows ticker, name, current price, percentage change, and a small
- * sparkline chart. Clicking the row updates the right panel.
- *
- * Uses recharts for the sparkline — no external charting dependency needed
- * beyond what's already in package.json.
  */
 
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
-export default function StockRow({ ticker, name, price, change, sparklineData = [], onClick }) {
+export default function StockRow({ ticker, name, price, change, sparklineData = [], isSelected, onClick }) {
   const isPositive = change >= 0;
+  const color = isPositive ? "var(--kite-positive)" : "var(--kite-negative)";
 
-  // recharts needs data as array of objects
   const chartData = sparklineData.map((value, i) => ({ i, value }));
 
   return (
-    <div onClick={onClick} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px", padding: "8px 0" }}>
-
+    <div
+      onClick={onClick}
+      style={{
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        padding: "10px 12px",
+        borderRadius: "var(--radius-md)",
+        background: isSelected ? "var(--kite-amber-wash)" : "transparent",
+        marginBottom: "2px",
+        transition: "background 0.15s",
+      }}
+    >
       {/* Ticker and name */}
-      <div style={{ flex: 1 }}>
-        <div><strong>{ticker}</strong></div>
-        <div style={{ fontSize: "0.85em" }}>{name}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "13px",
+          color: "var(--kite-amber-dark)",
+          fontWeight: "600",
+          letterSpacing: "0.04em",
+        }}>
+          {ticker}
+        </div>
+        <div style={{
+          fontSize: "12px",
+          color: "var(--kite-muted)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}>
+          {name}
+        </div>
       </div>
 
       {/* Sparkline */}
-      <div style={{ width: 80, height: 32 }}>
+      <div style={{ width: 64, height: 28, flexShrink: 0 }}>
         {chartData.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke={isPositive ? "#22c55e" : "#ef4444"}
+                stroke={isPositive ? "#2D6A4F" : "#B54040"}
                 dot={false}
                 strokeWidth={1.5}
               />
@@ -44,13 +65,14 @@ export default function StockRow({ ticker, name, price, change, sparklineData = 
       </div>
 
       {/* Price and change */}
-      <div style={{ textAlign: "right" }}>
-        <div>${price?.toFixed(2)}</div>
-        <div style={{ color: isPositive ? "#22c55e" : "#ef4444", fontSize: "0.85em" }}>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div style={{ fontSize: "13px", color: "var(--kite-heading)", fontWeight: "500" }}>
+          ${price?.toFixed(2)}
+        </div>
+        <div style={{ fontSize: "11px", color }}>
           {isPositive ? "+" : ""}{change?.toFixed(2)}%
         </div>
       </div>
-
     </div>
   );
 }

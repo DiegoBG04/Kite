@@ -1,12 +1,5 @@
 /**
  * Dashboard.jsx — Main Portfolio Dashboard Page
- *
- * Purpose: The primary view of Kite. Two panels:
- *   Left:  BriefingBox + list of StockRows + ChatBox
- *   Right: StockChart + InsightCard + MetricsRow for the selected stock
- *
- * On load, fetches live portfolio data and today's briefing from the API.
- * Clicking a StockRow updates the right panel for that stock.
  */
 
 import { useState, useEffect } from "react";
@@ -18,7 +11,6 @@ import StockChart from "../components/StockChart";
 import InsightCard from "../components/InsightCard";
 import MetricsRow from "../components/MetricsRow";
 
-// Hardcoded for MVP — replaced with user portfolio after auth is built (Week 7)
 const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA"];
 
 export default function Dashboard() {
@@ -31,7 +23,7 @@ export default function Dashboard() {
   const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    if (fetched) return;  // Only fetch once — prevents duplicate requests on re-render
+    if (fetched) return;
     setFetched(true);
     async function load() {
       try {
@@ -52,17 +44,42 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (loading) return <div style={{ padding: 32 }}>Loading portfolio...</div>;
-  if (error)   return <div style={{ padding: 32, color: "red" }}>Error: {error}</div>;
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--kite-muted)", fontFamily: "var(--font-display)", fontSize: "16px" }}>
+      Loading portfolio…
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ padding: "32px", color: "var(--kite-negative)" }}>Error: {error}</div>
+  );
 
   return (
-    <div style={{ display: "flex", gap: "24px", padding: "16px", height: "100vh", boxSizing: "border-box" }}>
+    <div style={{ display: "flex", height: "100%", background: "var(--kite-cream)" }}>
 
       {/* Left panel */}
-      <div style={{ width: 320, display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+      <div style={{
+        width: "300px",
+        minWidth: "300px",
+        display: "flex",
+        flexDirection: "column",
+        borderRight: "1px solid var(--kite-border)",
+        background: "var(--kite-surface)",
+        overflowY: "auto",
+      }}>
         <BriefingBox items={briefing.items} />
 
-        <div>
+        <div style={{ padding: "0 16px" }}>
+          <div style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--kite-muted)",
+            padding: "16px 0 8px",
+          }}>
+            Portfolio
+          </div>
           {portfolio.map((stock) => (
             <StockRow
               key={stock.ticker}
@@ -71,16 +88,19 @@ export default function Dashboard() {
               price={stock.price}
               change={stock.change_pct}
               sparklineData={stock.sparkline_data}
+              isSelected={selected?.ticker === stock.ticker}
               onClick={() => setSelected(stock)}
             />
           ))}
         </div>
 
-        <ChatBox tickers={DEFAULT_TICKERS} />
+        <div style={{ flex: 1, padding: "16px", borderTop: "1px solid var(--kite-border)", marginTop: "8px" }}>
+          <ChatBox tickers={DEFAULT_TICKERS} />
+        </div>
       </div>
 
       {/* Right panel */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "24px", gap: "16px" }}>
         {selected ? (
           <>
             <StockChart
@@ -98,13 +118,12 @@ export default function Dashboard() {
               riskFlags={selected.risk_flags}
               lastFiling={selected.last_filing}
             />
-            <InsightCard
-              insight={null}
-              sources={[]}
-            />
+            <InsightCard insight={null} sources={[]} />
           </>
         ) : (
-          <div style={{ color: "#888" }}>Select a stock to view details.</div>
+          <div style={{ color: "var(--kite-muted)", paddingTop: "80px", textAlign: "center", fontFamily: "var(--font-display)" }}>
+            Select a stock to view details.
+          </div>
         )}
       </div>
 
