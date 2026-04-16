@@ -26,7 +26,7 @@ TWELVE_BASE = "https://api.twelvedata.com"
 CACHE_TTL_SECONDS = 900  # 15 minutes
 _cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
-FIN_TTL_SECONDS = 3600 * 6  # 6 hours — financial statements change rarely
+FIN_CACHE_TTL = 3600  # 1 hour — DB reads are fast, cache to avoid hammering Supabase
 _fin_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
 # Chart period definitions: (interval, outputsize)
@@ -101,79 +101,25 @@ def get_portfolio_data(ticker: str) -> dict:
     return result
 
 
-AV_BASE = "https://www.alphavantage.co/query"
-
-
 def get_financials(ticker: str) -> dict:
     """
-    Fetch quarterly and annual income statement data for a ticker.
-    Uses Alpha Vantage INCOME_STATEMENT endpoint (free tier).
+    Return quarterly and annual income statement data for a ticker.
+    Reads from the Supabase 'financials' table — data is pre-ingested
+    via xbrl.fetch_financial_facts() during the /ingest pipeline.
 
-    Requires: ALPHA_VANTAGE_API_KEY in environment variables.
-    Free key at: https://www.alphavantage.co/support/#api-key
-
-    Returns:
-        Dict with keys: ticker, quarterly, annual
-        Each period list contains: date, revenue, gross_profit, ebitda, net_income
+    Results are cached in memory for 1 hour to avoid redundant DB queries.
     """
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "").strip()
-    if not api_key:
-        raise ValueError("ALPHA_VANTAGE_API_KEY not set")
-
     ticker = ticker.upper()
     cached = _fin_cache.get(ticker)
     if cached and cached["expires"] > time.time():
         logger.info(f"[FINANCIALS] {ticker}: returning cached data")
         return cached["data"]
 
-    result: dict = {"ticker": ticker, "quarterly": [], "annual": []}
+    from backend.pipeline.financial_store import get_financials_from_db
+    result = get_financials_from_db(ticker)
 
-    try:
-        resp = requests.get(AV_BASE, params={
-            "function": "INCOME_STATEMENT",
-            "symbol": ticker,
-            "apikey": api_key,
-        }, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-
-        if "Note" in data or "Information" in data:
-            # Rate limit or plan restriction message from Alpha Vantage
-            msg = data.get("Note") or data.get("Information", "")
-            logger.warning(f"[FINANCIALS] Alpha Vantage limit for {ticker}: {msg}")
-        else:
-            def parse_rows(rows: list) -> list:
-                out = []
-                for row in rows[:8]:
-                    out.append({
-                        "date": row.get("fiscalDateEnding", ""),
-                        "revenue": _safe_float(row.get("totalRevenue")),
-                        "gross_profit": _safe_float(row.get("grossProfit")),
-                        "ebitda": _safe_float(row.get("ebitda")),
-                        "net_income": _safe_float(row.get("netIncome")),
-                    })
-                return out
-
-            result["annual"] = parse_rows(data.get("annualReports") or [])
-            result["quarterly"] = parse_rows(data.get("quarterlyReports") or [])
-            logger.info(
-                f"[FINANCIALS] {ticker}: "
-                f"{len(result['annual'])} annual, "
-                f"{len(result['quarterly'])} quarterly periods"
-            )
-
-    except Exception as exc:
-        logger.warning(f"[FINANCIALS] Failed for {ticker}: {exc}")
-
-    _fin_cache[ticker] = {"data": result, "expires": time.time() + FIN_TTL_SECONDS}
+    _fin_cache[ticker] = {"data": result, "expires": time.time() + FIN_CACHE_TTL}
     return result
-
-
-def _safe_float(v) -> float | None:
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
 
 
 def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:

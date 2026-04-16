@@ -37,12 +37,27 @@ from backend.models import (
     NewsResponse,
 )
 
+from contextlib import asynccontextmanager
+from backend.scheduler import scheduler, setup_jobs
+
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app):
+    setup_jobs()
+    scheduler.start()
+    logger.info("[STARTUP] Scheduler started")
+    yield
+    scheduler.shutdown(wait=False)
+    logger.info("[SHUTDOWN] Scheduler stopped")
+
 
 app = FastAPI(
     title="Kite API",
     description="AI-powered portfolio intelligence backend",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Allow the Vite dev server and Vercel preview URLs to call this API.
@@ -97,6 +112,9 @@ async def ingest(request: IngestRequest) -> IngestResponse:
     tickers_processed = []
     total_chunks = 0
 
+    from backend.ingestion.xbrl import fetch_financial_facts
+    from backend.pipeline.financial_store import upsert_financials
+
     for ticker in request.tickers:
         try:
             logger.info(f"[INGEST] Starting pipeline for {ticker}")
@@ -122,11 +140,21 @@ async def ingest(request: IngestRequest) -> IngestResponse:
             total_chunks += n
             tickers_processed.append(ticker)
 
-            logger.info(f"[INGEST] ✓ {ticker} complete — {n} chunks stored")
+            logger.info(f"[INGEST] ✓ {ticker} filings complete — {n} chunks stored")
 
         except Exception as exc:
-            # Log the error but continue processing remaining tickers
             logger.error(f"[INGEST] Failed for {ticker}: {exc}")
+
+    # Stage 5: Ingest financial facts from EDGAR XBRL for all processed tickers
+    for ticker in tickers_processed:
+        try:
+            logger.info(f"[INGEST] Fetching XBRL financials for {ticker}")
+            facts = fetch_financial_facts(ticker)
+            all_periods = facts["annual"] + facts["quarterly"]
+            upsert_financials(ticker, all_periods)
+            logger.info(f"[INGEST] ✓ {ticker} financials stored")
+        except Exception as exc:
+            logger.warning(f"[INGEST] XBRL failed for {ticker} (non-fatal): {exc}")
 
     return IngestResponse(
         status="ok" if tickers_processed else "error",

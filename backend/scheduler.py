@@ -1,35 +1,59 @@
 """
-scheduler.py — Daily Cron Job Scheduler
+scheduler.py — Nightly Background Job Scheduler
 
-Purpose: Uses APScheduler to run recurring background tasks without needing
-Celery or a separate worker process. Starts alongside the FastAPI app and
-runs jobs on a fixed daily schedule.
+Runs alongside FastAPI using APScheduler. Jobs:
+  - 2:00 AM UTC daily: Re-fetch EDGAR XBRL financials for all ingested tickers
+  - (Future) Midnight UTC: Re-ingest SEC filings
+  - (Future) Hourly: Refresh news
 
-Scheduled jobs:
-    - Midnight UTC: Re-ingest filings for all subscribed tickers
-    - 6:00 AM UTC:  Generate daily portfolio briefings
-    - Every hour:   Fetch latest news for subscribed tickers
-
-APScheduler is simpler than Celery for a solo/small-team MVP. If job volume
-grows or we need distributed workers, switch to Celery + Redis later.
-
-TODO (Step 7): Wire scheduler into FastAPI lifespan events in main.py.
+Wire into main.py lifespan — see setup_jobs() below.
 """
+
+import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Scheduler instance — created here, started in main.py lifespan handler
+logger = logging.getLogger(__name__)
+
 scheduler = AsyncIOScheduler()
 
 
-def setup_jobs(tickers: list[str]) -> None:
+def setup_jobs() -> None:
     """
-    Register all recurring jobs with the scheduler.
-
-    Call this once during app startup, passing the list of portfolio tickers
-    to ingest and brief on.
-
-    Args:
-        tickers: List of ticker symbols to process e.g. ["AAPL", "MSFT", "TSLA"]
+    Register all recurring background jobs.
+    Called once at app startup from main.py lifespan.
     """
-    raise NotImplementedError("scheduler.setup_jobs() — not yet implemented (Step 7)")
+    scheduler.add_job(
+        _refresh_all_financials,
+        trigger="cron",
+        hour=2,
+        minute=0,
+        id="nightly_financials",
+        replace_existing=True,
+    )
+    logger.info("[SCHEDULER] Registered nightly financials refresh (2:00 AM UTC)")
+
+
+async def _refresh_all_financials() -> None:
+    """
+    Re-fetch EDGAR XBRL financial data for every ticker in the financials table.
+    Runs nightly so the charts always show up-to-date quarterly/annual data.
+    """
+    from backend.ingestion.xbrl import fetch_financial_facts
+    from backend.pipeline.financial_store import upsert_financials, get_all_ingested_tickers
+
+    tickers = get_all_ingested_tickers()
+    if not tickers:
+        logger.info("[SCHEDULER] No tickers to refresh")
+        return
+
+    logger.info(f"[SCHEDULER] Refreshing financials for {len(tickers)} tickers: {tickers}")
+
+    for ticker in tickers:
+        try:
+            facts = fetch_financial_facts(ticker)
+            all_periods = facts["annual"] + facts["quarterly"]
+            upsert_financials(ticker, all_periods)
+            logger.info(f"[SCHEDULER] ✓ {ticker} refreshed")
+        except Exception as exc:
+            logger.warning(f"[SCHEDULER] Failed to refresh {ticker}: {exc}")

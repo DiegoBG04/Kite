@@ -122,7 +122,7 @@ class FinancialPeriod(BaseModel):
     date: str
     revenue: Optional[float] = None
     gross_profit: Optional[float] = None
-    ebitda: Optional[float] = None
+    operating_income: Optional[float] = None
     net_income: Optional[float] = None
 
 

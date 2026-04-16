@@ -43,10 +43,10 @@ function yearLabel(dateStr) {
 const PRICE_PERIODS = ["1D", "1W", "1M", "3M", "6M", "1Y"];
 
 const CHART_COLORS = {
-  revenue:     "#F5A623",
-  grossProfit: "#C47D0A",
-  ebitda:      "#5B8DB8",
-  netIncome:   "#2D6A4F",
+  revenue:          "#F5A623",
+  grossProfit:      "#C47D0A",
+  operatingIncome:  "#5B8DB8",
+  netIncome:        "#2D6A4F",
 };
 
 // ── ChartCard ────────────────────────────────────────────────────────────────
@@ -272,10 +272,10 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
   const finData = financials?.[finPeriod] ?? [];
   const labelFn = finPeriod === "quarterly" ? quarterLabel : yearLabel;
 
-  const latestRevenue = finData.find((d) => d.revenue != null)?.revenue ?? null;
+  const latestRevenue   = finData.find((d) => d.revenue != null)?.revenue ?? null;
   const latestNetIncome = finData.find((d) => d.net_income != null)?.net_income ?? null;
-  const latestEbitda = finData.find((d) => d.ebitda != null)?.ebitda ?? null;
-  const latestGross = finData.find((d) => d.gross_profit != null)?.gross_profit ?? null;
+  const latestOpIncome  = finData.find((d) => d.operating_income != null)?.operating_income ?? null;
+  const latestGross     = finData.find((d) => d.gross_profit != null)?.gross_profit ?? null;
 
   return (
     <>
@@ -511,12 +511,12 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
                   />
                 </ChartCard>
 
-                {/* EBITDA */}
-                <ChartCard title="EBITDA" latestValue={latestEbitda != null ? fmt(latestEbitda) : null} isKpi>
+                {/* Operating Income */}
+                <ChartCard title="Operating Income" latestValue={latestOpIncome != null ? fmt(latestOpIncome) : null} isKpi>
                   <FinancialBar
                     data={finData}
-                    dataKey="ebitda"
-                    color={CHART_COLORS.ebitda}
+                    dataKey="operating_income"
+                    color={CHART_COLORS.operatingIncome}
                     labelFn={labelFn}
                   />
                 </ChartCard>
