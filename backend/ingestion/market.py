@@ -101,18 +101,24 @@ def get_portfolio_data(ticker: str) -> dict:
     return result
 
 
+AV_BASE = "https://www.alphavantage.co/query"
+
+
 def get_financials(ticker: str) -> dict:
     """
     Fetch quarterly and annual income statement data for a ticker.
-    Uses Twelve Data /income_statement endpoint.
+    Uses Alpha Vantage INCOME_STATEMENT endpoint (free tier).
+
+    Requires: ALPHA_VANTAGE_API_KEY in environment variables.
+    Free key at: https://www.alphavantage.co/support/#api-key
 
     Returns:
         Dict with keys: ticker, quarterly, annual
         Each period list contains: date, revenue, gross_profit, ebitda, net_income
     """
-    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "").strip()
     if not api_key:
-        raise ValueError("TWELVE_DATA_API_KEY not set")
+        raise ValueError("ALPHA_VANTAGE_API_KEY not set")
 
     ticker = ticker.upper()
     cached = _fin_cache.get(ticker)
@@ -122,35 +128,42 @@ def get_financials(ticker: str) -> dict:
 
     result: dict = {"ticker": ticker, "quarterly": [], "annual": []}
 
-    for period in ("quarterly", "annual"):
-        try:
-            resp = requests.get(f"{TWELVE_BASE}/income_statement", params={
-                "symbol": ticker,
-                "period": period,
-                "apikey": api_key,
-            }, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
+    try:
+        resp = requests.get(AV_BASE, params={
+            "function": "INCOME_STATEMENT",
+            "symbol": ticker,
+            "apikey": api_key,
+        }, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
 
-            if data.get("status") == "error":
-                logger.warning(f"[FINANCIALS] {ticker} {period}: {data.get('message')}")
-                continue
+        if "Note" in data or "Information" in data:
+            # Rate limit or plan restriction message from Alpha Vantage
+            msg = data.get("Note") or data.get("Information", "")
+            logger.warning(f"[FINANCIALS] Alpha Vantage limit for {ticker}: {msg}")
+        else:
+            def parse_rows(rows: list) -> list:
+                out = []
+                for row in rows[:8]:
+                    out.append({
+                        "date": row.get("fiscalDateEnding", ""),
+                        "revenue": _safe_float(row.get("totalRevenue")),
+                        "gross_profit": _safe_float(row.get("grossProfit")),
+                        "ebitda": _safe_float(row.get("ebitda")),
+                        "net_income": _safe_float(row.get("netIncome")),
+                    })
+                return out
 
-            rows = (data.get(period) or [])[:8]  # last 8 periods
-            result[period] = [
-                {
-                    "date": row.get("fiscal_date", ""),
-                    "revenue": _safe_float(row.get("total_revenue")),
-                    "gross_profit": _safe_float(row.get("gross_profit")),
-                    "ebitda": _safe_float(row.get("ebitda")),
-                    "net_income": _safe_float(row.get("net_income")),
-                }
-                for row in rows
-            ]
-            logger.info(f"[FINANCIALS] {ticker} {period}: {len(rows)} periods fetched")
+            result["annual"] = parse_rows(data.get("annualReports") or [])
+            result["quarterly"] = parse_rows(data.get("quarterlyReports") or [])
+            logger.info(
+                f"[FINANCIALS] {ticker}: "
+                f"{len(result['annual'])} annual, "
+                f"{len(result['quarterly'])} quarterly periods"
+            )
 
-        except Exception as exc:
-            logger.warning(f"[FINANCIALS] Failed {ticker} {period}: {exc}")
+    except Exception as exc:
+        logger.warning(f"[FINANCIALS] Failed for {ticker}: {exc}")
 
     _fin_cache[ticker] = {"data": result, "expires": time.time() + FIN_TTL_SECONDS}
     return result
