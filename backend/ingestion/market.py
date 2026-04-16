@@ -73,10 +73,11 @@ def get_portfolio_data(ticker: str) -> dict:
     # --- Quote: price, change %, name (1 API call) ---
     price, change_pct, name = _get_quote(ticker, api_key)
 
-    # --- Chart data per period (1 API call each) ---
+    # --- Chart data per period (1 API call each, small delay to stay under 8/min) ---
     chart_data: dict[str, list[float]] = {}
     for label, (interval, outputsize) in CHART_PERIODS.items():
         chart_data[label] = _get_time_series(ticker, api_key, interval, outputsize)
+        time.sleep(0.5)  # ~2 calls/sec max across concurrent ticker fetches
 
     # Reuse 1M daily data for sparkline — no extra API call
     sparkline_data = chart_data["1M"][-30:]
