@@ -24,7 +24,7 @@ EDGAR_BASE = "https://data.sec.gov"
 SEC_BASE   = "https://www.sec.gov"
 
 # EDGAR requires a descriptive User-Agent or it returns 403
-USER_AGENT = "Kite/0.1 portfolio-analytics (github.com/kite)"
+USER_AGENT = "Kite/0.1 portfolio-analytics (dbarrigaguerra@gmail.com)"
 
 # In-memory ticker → CIK cache, loaded once per process
 _ticker_cik: dict[str, int] = {}
