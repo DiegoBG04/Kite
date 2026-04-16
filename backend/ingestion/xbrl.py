@@ -44,6 +44,31 @@ NET_INCOME_TAGS      = [
     "NetIncomeLossAvailableToCommonStockholdersBasic",
     "ProfitLoss",
 ]
+OPERATING_CF_TAGS = [
+    "NetCashProvidedByUsedInOperatingActivities",
+    "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+]
+CAPEX_TAGS = [
+    "PaymentsToAcquirePropertyPlantAndEquipment",
+    "AcquisitionsNetOfCashAcquiredAndPurchasesOfBusinesses",
+    "PaymentsToAcquireProductiveAssets",
+]
+CASH_TAGS = [
+    "CashAndCashEquivalentsAtCarryingValue",
+    "CashCashEquivalentsAndShortTermInvestments",
+    "CashAndCashEquivalentsPeriodIncreaseDecrease",
+]
+LONGTERM_DEBT_TAGS = [
+    "LongTermDebt",
+    "LongTermDebtNoncurrent",
+    "LongTermNotesPayable",
+]
+SHORTTERM_DEBT_TAGS = [
+    "ShortTermBorrowings",
+    "DebtCurrent",
+    "LongTermDebtCurrent",
+    "CommercialPaper",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -87,8 +112,16 @@ def fetch_financial_facts(ticker: str) -> dict:
     gross_profit     = _extract_metric(us_gaap, GROSS_PROFIT_TAGS)
     operating_income = _extract_metric(us_gaap, OPERATING_INCOME_TAGS)
     net_income       = _extract_metric(us_gaap, NET_INCOME_TAGS)
+    operating_cf     = _extract_metric(us_gaap, OPERATING_CF_TAGS)
+    capex            = _extract_metric(us_gaap, CAPEX_TAGS)
+    cash             = _extract_metric(us_gaap, CASH_TAGS)
+    longterm_debt    = _extract_metric(us_gaap, LONGTERM_DEBT_TAGS)
+    shortterm_debt   = _extract_metric(us_gaap, SHORTTERM_DEBT_TAGS)
 
-    return _build_periods(ticker, revenue, gross_profit, operating_income, net_income)
+    return _build_periods(
+        ticker, revenue, gross_profit, operating_income, net_income,
+        operating_cf, capex, cash, longterm_debt, shortterm_debt,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -141,15 +174,20 @@ def _build_periods(
     gross_profit: list,
     operating_income: list,
     net_income: list,
+    operating_cf: list,
+    capex: list,
+    cash: list,
+    longterm_debt: list,
+    shortterm_debt: list,
 ) -> dict:
     """
     Merge all metric series into a dict of periods keyed by (fiscal_date, period_type).
     Deduplicates by taking the most recently filed value for each period.
+    FCF and total_debt are derived after merging.
     """
     periods: dict[tuple, dict] = {}
 
     def add(values: list, key: str) -> None:
-        # Sort by filed date so later amendments win on conflict
         for v in sorted(values, key=lambda x: x.get("filed", "")):
             fiscal_date = v.get("end", "")
             form        = v.get("form", "")
@@ -160,14 +198,21 @@ def _build_periods(
 
             if pk not in periods:
                 periods[pk] = {
-                    "date":             fiscal_date,
-                    "period_type":      period_type,
-                    "fiscal_period":    fp,
-                    "fiscal_year":      v.get("fy"),
-                    "revenue":          None,
-                    "gross_profit":     None,
-                    "operating_income": None,
-                    "net_income":       None,
+                    "date":                fiscal_date,
+                    "period_type":         period_type,
+                    "fiscal_period":       fp,
+                    "fiscal_year":         v.get("fy"),
+                    "revenue":             None,
+                    "gross_profit":        None,
+                    "operating_income":    None,
+                    "net_income":          None,
+                    "operating_cash_flow": None,
+                    "capital_expenditure": None,
+                    "free_cash_flow":      None,
+                    "cash_and_equivalents": None,
+                    "longterm_debt":       None,
+                    "shortterm_debt":      None,
+                    "total_debt":          None,
                 }
             periods[pk][key] = v.get("val")
 
@@ -175,6 +220,26 @@ def _build_periods(
     add(gross_profit,     "gross_profit")
     add(operating_income, "operating_income")
     add(net_income,       "net_income")
+    add(operating_cf,     "operating_cash_flow")
+    add(capex,            "capital_expenditure")
+    add(cash,             "cash_and_equivalents")
+    add(longterm_debt,    "longterm_debt")
+    add(shortterm_debt,   "shortterm_debt")
+
+    # Derive FCF and total_debt
+    for p in periods.values():
+        ocf   = p.get("operating_cash_flow")
+        capex_val = p.get("capital_expenditure")
+        lt    = p.get("longterm_debt")
+        st    = p.get("shortterm_debt")
+        # CapEx is reported as a positive outflow in XBRL; FCF = OCF - CapEx
+        if ocf is not None and capex_val is not None:
+            p["free_cash_flow"] = ocf - abs(capex_val)
+        elif ocf is not None:
+            p["free_cash_flow"] = ocf
+        # Total debt = long-term + short-term (both may be partial)
+        if lt is not None or st is not None:
+            p["total_debt"] = (lt or 0) + (st or 0)
 
     all_periods = sorted(periods.values(), key=lambda p: p["date"], reverse=True)
 

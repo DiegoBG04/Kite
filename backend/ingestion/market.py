@@ -70,8 +70,8 @@ def get_portfolio_data(ticker: str) -> dict:
 
     logger.info(f"[MARKET] Fetching Twelve Data for {ticker}")
 
-    # --- Quote: price, change %, name (1 API call) ---
-    price, change_pct, name = _get_quote(ticker, api_key)
+    # --- Quote: price, change %, name, market cap, P/E (1 API call) ---
+    price, change_pct, name, market_cap, pe_ratio = _get_quote(ticker, api_key)
 
     # --- Chart data per period (1 API call each, small delay to stay under 8/min) ---
     chart_data: dict[str, list[float]] = {}
@@ -91,7 +91,8 @@ def get_portfolio_data(ticker: str) -> dict:
         "change_pct": round(change_pct, 2),
         "sparkline_data": sparkline_data,
         "chart_data": chart_data,
-        "pe_ratio": None,
+        "pe_ratio": pe_ratio,
+        "market_cap": market_cap,
         "revenue_change": None,
         "risk_flags": 0,
         "last_filing": None,
@@ -138,14 +139,21 @@ def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:
     if data.get("status") == "error":
         raise ValueError(f"Twelve Data error for {ticker}: {data.get('message')}")
 
-    price = float(data.get("close") or data.get("previous_close") or 0)
+    price      = float(data.get("close") or data.get("previous_close") or 0)
     change_pct = float(data.get("percent_change") or 0)
-    name = data.get("name") or ticker
+    name       = data.get("name") or ticker
+
+    def _safe(key):
+        try: return float(data[key])
+        except (KeyError, TypeError, ValueError): return None
+
+    market_cap = _safe("market_cap")
+    pe_ratio   = _safe("pe")
 
     if not price:
         raise ValueError(f"No price data returned for {ticker}")
 
-    return price, change_pct, name
+    return price, change_pct, name, market_cap, pe_ratio
 
 
 def _get_time_series(

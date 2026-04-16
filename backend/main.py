@@ -306,6 +306,45 @@ async def financials_route(ticker: str) -> FinancialsResponse:
 
 
 # ---------------------------------------------------------------------------
+# GET /search
+# ---------------------------------------------------------------------------
+
+@app.get("/search")
+async def search_symbols(q: str = Query(..., min_length=1, description="Ticker or company name query")) -> list[dict]:
+    """
+    Search for ticker symbols by name or ticker prefix.
+    Proxies Twelve Data's symbol_search endpoint so the API key stays server-side.
+    Returns up to 8 results: { symbol, name, exchange, type, country }
+    """
+    import os, requests as _req
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Search unavailable — API key not configured")
+
+    try:
+        resp = _req.get(
+            "https://api.twelvedata.com/symbol_search",
+            params={"symbol": q.upper(), "outputsize": 8, "apikey": api_key},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        return [
+            {
+                "symbol":   item.get("symbol", ""),
+                "name":     item.get("instrument_name", ""),
+                "exchange": item.get("exchange", ""),
+                "type":     item.get("instrument_type", ""),
+                "country":  item.get("country", ""),
+            }
+            for item in data
+        ]
+    except Exception as exc:
+        logger.warning(f"[SEARCH] Symbol search failed for '{q}': {exc}")
+        return []
+
+
+# ---------------------------------------------------------------------------
 # GET /briefing/{date}
 # ---------------------------------------------------------------------------
 

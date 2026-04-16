@@ -13,10 +13,6 @@ supabase==2.10.0
 psycopg2-binary==2.9.10
 pgvector==0.3.5
 
-# Embeddings — local model, no API cost
-sentence-transformers==3.3.1
-numpy==1.26.4
-
 # LLM
 anthropic==0.40.0
 

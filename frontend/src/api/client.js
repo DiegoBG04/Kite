@@ -38,20 +38,19 @@ async function apiFetch(path, options = {}) {
  * @returns {Promise<Object[]>} Array of PortfolioResponse objects
  */
 export async function getPortfolio(tickers) {
-  const results = await Promise.allSettled(
-    tickers.map((ticker) => apiFetch(`/portfolio/${ticker}`))
-  );
-
-  // Return successful results, log failures
-  return results
-    .filter((r) => {
-      if (r.status === "rejected") {
-        console.error(`Failed to fetch portfolio data: ${r.reason}`);
-        return false;
-      }
-      return true;
-    })
-    .map((r) => r.value);
+  // Fetch sequentially to avoid hitting Twelve Data's 8 calls/min rate limit.
+  // After the first load the backend cache (15 min TTL) makes subsequent
+  // calls instant regardless of order.
+  const results = [];
+  for (const ticker of tickers) {
+    try {
+      const data = await apiFetch(`/portfolio/${ticker}`);
+      results.push(data);
+    } catch (err) {
+      console.error(`Failed to fetch portfolio data for ${ticker}: ${err}`);
+    }
+  }
+  return results;
 }
 
 /**
@@ -104,6 +103,19 @@ export async function getNews({ tickers = [], filter = "portfolio" } = {}) {
  */
 export async function getFinancials(ticker) {
   return apiFetch(`/financials/${ticker}`);
+}
+
+/**
+ * Search for ticker symbols by name or ticker prefix.
+ * Calls GET /search?q=...
+ *
+ * @param {string} query - e.g. "AAPL" or "apple"
+ * @returns {Promise<Object[]>} Array of { symbol, name, exchange, type, country }
+ */
+export async function searchSymbols(query) {
+  if (!query || !query.trim()) return [];
+  const params = new URLSearchParams({ q: query.trim() });
+  return apiFetch(`/search?${params}`);
 }
 
 /**

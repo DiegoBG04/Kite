@@ -103,6 +103,7 @@ class PortfolioResponse(BaseModel):
     sparkline_data: list[float]             # last 30 closes for the sparkline
     chart_data: dict[str, list[float]]      # keyed by period: "1D", "1W", "1M", "3M", "1Y"
     pe_ratio: Optional[float] = None
+    market_cap: Optional[float] = None      # market capitalisation in USD
     revenue_change: Optional[float] = None  # YoY revenue change %
     risk_flags: int = 0                     # count of active risk flags
     last_filing: Optional[str] = None       # e.g. "10-K FY2024"
@@ -118,12 +119,20 @@ class PortfolioResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class FinancialPeriod(BaseModel):
-    """One period (quarter or fiscal year) of income statement data."""
+    """One period (quarter or fiscal year) of income statement, cash flow, and balance sheet data."""
     date: str
+    # Income statement
     revenue: Optional[float] = None
     gross_profit: Optional[float] = None
     operating_income: Optional[float] = None
     net_income: Optional[float] = None
+    # Cash flow statement
+    operating_cash_flow: Optional[float] = None
+    capital_expenditure: Optional[float] = None
+    free_cash_flow: Optional[float] = None
+    # Balance sheet
+    cash_and_equivalents: Optional[float] = None
+    total_debt: Optional[float] = None
 
 
 class FinancialsResponse(BaseModel):

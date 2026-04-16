@@ -1,0 +1,5 @@
+# Heavy ML packages — installed as a separate Docker layer.
+# This file should rarely change so the layer stays cached between deploys.
+# Pulling in sentence-transformers also installs torch (~1.5 GB).
+sentence-transformers==3.3.1
+numpy==1.26.4
