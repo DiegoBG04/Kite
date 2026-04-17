@@ -306,6 +306,47 @@ async def financials_route(ticker: str) -> FinancialsResponse:
 
 
 # ---------------------------------------------------------------------------
+# POST /ingest-financials
+# ---------------------------------------------------------------------------
+
+@app.post("/ingest-financials")
+async def ingest_financials(request: IngestRequest) -> dict:
+    """
+    Fast financial-only ingestion — fetches XBRL data from EDGAR and stores
+    it in the financials table. No embeddings, no ML, no SEC filing downloads.
+
+    Use this to populate the Financials and Trends tabs quickly.
+    Full /ingest is only needed for the AI chat (RAG) feature.
+
+    Typical time: ~5-10 seconds per ticker.
+    """
+    from backend.ingestion.xbrl import fetch_financial_facts
+    from backend.pipeline.financial_store import upsert_financials
+
+    results = {"ok": [], "failed": []}
+
+    for ticker in request.tickers:
+        ticker = ticker.upper().strip()
+        try:
+            logger.info(f"[FIN_INGEST] Fetching XBRL for {ticker}")
+            facts = fetch_financial_facts(ticker)
+            all_periods = facts["annual"] + facts["quarterly"]
+            upsert_financials(ticker, all_periods)
+            results["ok"].append(ticker)
+            logger.info(f"[FIN_INGEST] ✓ {ticker} — {len(all_periods)} periods stored")
+        except Exception as exc:
+            logger.error(f"[FIN_INGEST] ✗ {ticker}: {exc}")
+            results["failed"].append(ticker)
+
+    return {
+        "status": "ok" if results["ok"] else "error",
+        "ingested": results["ok"],
+        "failed":   results["failed"],
+        "total":    len(results["ok"]),
+    }
+
+
+# ---------------------------------------------------------------------------
 # GET /search
 # ---------------------------------------------------------------------------
 
