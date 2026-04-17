@@ -12,14 +12,14 @@ export default function ChatWidget({ tickers = [] }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ position: "fixed", bottom: "24px", right: "28px", zIndex: 90 }}>
+    <div style={{ position: "fixed", bottom: "24px", left: "28px", zIndex: 90 }}>
 
       {/* Expanded chat panel */}
       {open && (
         <div style={{
           position: "absolute",
           bottom: "60px",
-          right: 0,
+          left: 0,
           width: "360px",
           height: "500px",
           background: "var(--kite-surface)",

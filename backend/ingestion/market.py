@@ -13,8 +13,10 @@ Results are cached in memory for 15 minutes to avoid redundant API calls.
 Requires: TWELVE_DATA_API_KEY in your .env / Railway environment variables.
 """
 
+import collections
 import logging
 import os
+import threading
 import time
 
 import requests
@@ -29,16 +31,61 @@ _cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 FIN_CACHE_TTL = 3600  # 1 hour — DB reads are fast, cache to avoid hammering Supabase
 _fin_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
-# Chart period definitions: (interval, outputsize)
-CHART_PERIODS = {
-    "1D": ("5min",   78),   # ~1 trading day of 5-min bars
-    "1W": ("1h",     35),   # 5 trading days of hourly bars
-    "1M": ("1day",   30),
-    "3M": ("1day",   90),
-    "6M": ("1day",  180),
-    "1Y": ("1week",  52),
-    "6Y": ("1month", 72),
-    "MAX": ("1month", 240),
+# ── Rate limiter ─────────────────────────────────────────────────────────────
+# Twelve Data free tier: 8 calls/minute. We stay at ≤7 to leave headroom.
+# Uses a global deque of call timestamps so concurrent fetches respect the limit.
+
+_rl_lock  = threading.Lock()
+_rl_times: collections.deque = collections.deque()
+_RL_MAX   = 7      # max calls per window
+_RL_WIN   = 61.0   # window in seconds (slightly over 60 to be safe)
+
+
+def _api_call(fn):
+    """Wrap an API call with the global rate limiter. Blocks if at the limit."""
+    with _rl_lock:
+        now = time.time()
+        while _rl_times and _rl_times[0] < now - _RL_WIN:
+            _rl_times.popleft()
+        if len(_rl_times) >= _RL_MAX:
+            wait = (_rl_times[0] + _RL_WIN) - now
+            if wait > 0:
+                logger.info(f"[RATE] API limit reached — waiting {wait:.1f}s")
+                time.sleep(wait)
+            # Re-prune after sleeping
+            now = time.time()
+            while _rl_times and _rl_times[0] < now - _RL_WIN:
+                _rl_times.popleft()
+        _rl_times.append(time.time())
+    return fn()
+
+
+# ── Chart period definitions ──────────────────────────────────────────────────
+# Instead of 11 separate API calls (one per period), we fetch only 5 raw series
+# and slice them to produce every period. 5 calls + 1 quote = 6 total per ticker.
+
+# Raw series fetched from Twelve Data: interval → outputsize
+_RAW_FETCH = {
+    "5min":   78,   # 1 trading day of 5-min bars
+    "1h":    120,   # ~3 weeks of hourly bars (enough for 1W at 35 bars)
+    "1day":  520,   # ~2 years of daily bars  (1M / 3M / 6M / YTD / 1Y / 2Y)
+    "1week": 262,   # ~5 years of weekly bars (5Y)
+    "1month":480,   # ~40 years of monthly bars (10Y / MAX)
+}
+
+# How each user-facing period is built from a raw series: (raw_interval, n_bars)
+_PERIOD_SLICE = {
+    "1D":  ("5min",    78),
+    "1W":  ("1h",      35),
+    "1M":  ("1day",    22),
+    "3M":  ("1day",    65),
+    "6M":  ("1day",   130),
+    "YTD": ("1day",   105),
+    "1Y":  ("1day",   252),
+    "2Y":  ("1day",   504),   # use full daily buffer
+    "5Y":  ("1week",  261),
+    "10Y": ("1month", 120),
+    "MAX": ("1month", 480),
 }
 
 
@@ -70,17 +117,26 @@ def get_portfolio_data(ticker: str) -> dict:
 
     logger.info(f"[MARKET] Fetching Twelve Data for {ticker}")
 
-    # --- Quote: price, change %, name, market cap, P/E (1 API call) ---
-    price, change_pct, name, market_cap, pe_ratio = _get_quote(ticker, api_key)
+    # --- Quote: 1 API call (rate-limited) ---
+    price, change_pct, name, market_cap, pe_ratio, open_price, day_high, day_low, volume, week_52_high, week_52_low, eps, beta = \
+        _api_call(lambda: _get_quote(ticker, api_key))
 
-    # --- Chart data per period (1 API call each, small delay to stay under 8/min) ---
+    # --- Fetch 5 raw series instead of 11 separate ones ---
+    # Each raw interval feeds multiple user-facing periods (sliced on the right).
+    raw: dict[str, list[float]] = {}
+    for interval, outputsize in _RAW_FETCH.items():
+        raw[interval] = _api_call(
+            lambda iv=interval, sz=outputsize: _get_time_series(ticker, api_key, iv, sz)
+        )
+
+    # Build every user-facing period by slicing the appropriate raw series
     chart_data: dict[str, list[float]] = {}
-    for label, (interval, outputsize) in CHART_PERIODS.items():
-        chart_data[label] = _get_time_series(ticker, api_key, interval, outputsize)
-        time.sleep(0.5)  # ~2 calls/sec max across concurrent ticker fetches
+    for period, (interval, n) in _PERIOD_SLICE.items():
+        series = raw.get(interval, [])
+        chart_data[period] = series[-n:] if len(series) >= n else series
 
-    # Reuse 1M daily data for sparkline — no extra API call
-    sparkline_data = chart_data["1M"][-30:]
+    # Reuse daily data for sparkline — no extra API call
+    sparkline_data = chart_data.get("1M", [])[-30:]
 
     logger.info(f"[MARKET] {ticker}: ${price} ({change_pct:+.2f}%)")
 
@@ -97,6 +153,14 @@ def get_portfolio_data(ticker: str) -> dict:
         "risk_flags": 0,
         "last_filing": None,
         "yahoo_url": f"https://finance.yahoo.com/quote/{ticker}",
+        "open_price": open_price,
+        "day_high": day_high,
+        "day_low": day_low,
+        "volume": volume,
+        "week_52_high": week_52_high,
+        "week_52_low": week_52_low,
+        "eps": eps,
+        "beta": beta,
     }
 
     _cache[ticker] = {"data": result, "expires": time.time() + CACHE_TTL_SECONDS}
@@ -124,10 +188,13 @@ def get_financials(ticker: str) -> dict:
     return result
 
 
-def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:
+def _get_quote(ticker: str, api_key: str) -> tuple:
     """
-    Fetch current price, percent change, and company name in one call.
+    Fetch current price, percent change, company name, and intraday stats in one call.
     Uses /quote endpoint which supports multiple symbols.
+    Returns: (price, change_pct, name, market_cap, pe_ratio,
+              open_price, day_high, day_low, volume,
+              week_52_high, week_52_low, eps, beta)
     """
     resp = requests.get(f"{TWELVE_BASE}/quote", params={
         "symbol": ticker,
@@ -147,13 +214,25 @@ def _get_quote(ticker: str, api_key: str) -> tuple[float, float, str]:
         try: return float(data[key])
         except (KeyError, TypeError, ValueError): return None
 
-    market_cap = _safe("market_cap")
-    pe_ratio   = _safe("pe")
+    def _safe_nested(outer, inner):
+        try: return float(data[outer][inner])
+        except (KeyError, TypeError, ValueError): return None
+
+    market_cap   = _safe("market_cap")
+    pe_ratio     = _safe("pe")
+    open_price   = _safe("open")
+    day_high     = _safe("high")
+    day_low      = _safe("low")
+    volume       = _safe("volume")
+    week_52_high = _safe_nested("fifty_two_week", "high")
+    week_52_low  = _safe_nested("fifty_two_week", "low")
+    eps          = _safe("eps")
+    beta         = _safe("beta")
 
     if not price:
         raise ValueError(f"No price data returned for {ticker}")
 
-    return price, change_pct, name, market_cap, pe_ratio
+    return price, change_pct, name, market_cap, pe_ratio, open_price, day_high, day_low, volume, week_52_high, week_52_low, eps, beta
 
 
 def _get_time_series(

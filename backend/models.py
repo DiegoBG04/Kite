@@ -101,13 +101,22 @@ class PortfolioResponse(BaseModel):
     price: float
     change_pct: float                       # percentage change today
     sparkline_data: list[float]             # last 30 closes for the sparkline
-    chart_data: dict[str, list[float]]      # keyed by period: "1D", "1W", "1M", "3M", "1Y"
+    chart_data: dict[str, list[float]]      # keyed by period: "1D", "1W", "1M", "3M", "1Y", etc.
     pe_ratio: Optional[float] = None
     market_cap: Optional[float] = None      # market capitalisation in USD
     revenue_change: Optional[float] = None  # YoY revenue change %
     risk_flags: int = 0                     # count of active risk flags
     last_filing: Optional[str] = None       # e.g. "10-K FY2024"
     yahoo_url: str = ""                     # https://finance.yahoo.com/quote/{ticker}
+    # Intraday stats for the stats bar
+    open_price: Optional[float] = None      # today's open
+    day_high: Optional[float] = None        # today's high
+    day_low: Optional[float] = None         # today's low
+    volume: Optional[float] = None          # today's volume
+    week_52_high: Optional[float] = None    # 52-week high
+    week_52_low: Optional[float] = None     # 52-week low
+    eps: Optional[float] = None             # earnings per share
+    beta: Optional[float] = None            # beta vs S&P 500
 
 
 # ---------------------------------------------------------------------------

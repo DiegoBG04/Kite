@@ -212,12 +212,12 @@ async def query(request: QueryRequest) -> QueryResponse:
 # Realistic mock data for local development — used when yfinance is rate-limited.
 # Replace with real data once deployed to Railway (different IP, no rate-limiting).
 _MOCK_PORTFOLIO = {
-    "AAPL": {"name": "Apple Inc.", "price": 198.15, "change_pct": -1.23, "pe_ratio": 31.2, "revenue_change": 4.1},
-    "MSFT": {"name": "Microsoft Corp.", "price": 415.32, "change_pct": 0.87, "pe_ratio": 36.5, "revenue_change": 17.6},
-    "NVDA": {"name": "NVIDIA Corp.", "price": 875.40, "change_pct": 2.14, "pe_ratio": 68.1, "revenue_change": 122.4},
-    "TSLA": {"name": "Tesla Inc.", "price": 162.50, "change_pct": -3.45, "pe_ratio": 45.2, "revenue_change": 8.2},
-    "GOOGL": {"name": "Alphabet Inc.", "price": 165.20, "change_pct": 1.05, "pe_ratio": 22.8, "revenue_change": 15.1},
-    "AMZN": {"name": "Amazon.com Inc.", "price": 185.75, "change_pct": 0.62, "pe_ratio": 42.1, "revenue_change": 11.0},
+    "AAPL": {"name": "Apple Inc.",       "price": 198.15, "change_pct": -1.23, "pe_ratio": 31.2, "revenue_change":  4.1, "market_cap": 3.05e12, "eps": 6.42,  "beta": 1.24, "open_price": 200.10, "day_high": 201.50, "day_low": 197.20, "volume": 52_300_000, "week_52_high": 237.49, "week_52_low": 164.08},
+    "MSFT": {"name": "Microsoft Corp.",  "price": 415.32, "change_pct":  0.87, "pe_ratio": 36.5, "revenue_change": 17.6, "market_cap": 3.08e12, "eps": 11.45, "beta": 0.90, "open_price": 411.80, "day_high": 416.90, "day_low": 410.30, "volume": 18_700_000, "week_52_high": 468.35, "week_52_low": 344.79},
+    "NVDA": {"name": "NVIDIA Corp.",     "price": 875.40, "change_pct":  2.14, "pe_ratio": 68.1, "revenue_change": 122.4,"market_cap": 2.15e12, "eps": 12.96, "beta": 1.68, "open_price": 857.00, "day_high": 882.30, "day_low": 854.10, "volume": 41_200_000, "week_52_high": 974.00, "week_52_low": 462.37},
+    "TSLA": {"name": "Tesla Inc.",       "price": 162.50, "change_pct": -3.45, "pe_ratio": 45.2, "revenue_change":  8.2, "market_cap": 5.18e11, "eps":  3.60, "beta": 2.31, "open_price": 168.40, "day_high": 169.10, "day_low": 161.80, "volume": 97_800_000, "week_52_high": 299.29, "week_52_low": 138.80},
+    "GOOGL": {"name": "Alphabet Inc.",   "price": 165.20, "change_pct":  1.05, "pe_ratio": 22.8, "revenue_change": 15.1, "market_cap": 2.03e12, "eps":  7.25, "beta": 1.06, "open_price": 163.50, "day_high": 166.40, "day_low": 163.00, "volume": 23_400_000, "week_52_high": 207.05, "week_52_low": 140.53},
+    "AMZN": {"name": "Amazon.com Inc.",  "price": 185.75, "change_pct":  0.62, "pe_ratio": 42.1, "revenue_change": 11.0, "market_cap": 1.94e12, "eps":  4.41, "beta": 1.15, "open_price": 184.20, "day_high": 186.90, "day_low": 183.70, "volume": 34_100_000, "week_52_high": 242.52, "week_52_low": 151.61},
 }
 
 def _mock_prices(base_price: float, change_pct: float, points: int, volatility: float = 0.008) -> list[float]:
@@ -260,13 +260,18 @@ async def portfolio(ticker: str) -> PortfolioResponse:
         mock = {"name": ticker, "price": 100.00, "change_pct": 0.0, "pe_ratio": None, "revenue_change": None}
 
     sparkline = _mock_prices(mock["price"], mock["change_pct"], 30)
-    # Each period gets a different number of data points so switching tabs is visible
     chart_data = {
-        "1D": _mock_prices(mock["price"], mock["change_pct"] / 5, 78, volatility=0.002),
-        "1W": _mock_prices(mock["price"], mock["change_pct"], 5, volatility=0.005),
-        "1M": _mock_prices(mock["price"], mock["change_pct"], 30, volatility=0.008),
-        "3M": _mock_prices(mock["price"], mock["change_pct"] * 2, 90, volatility=0.010),
-        "1Y": _mock_prices(mock["price"], mock["change_pct"] * 8, 52, volatility=0.015),
+        "1D":  _mock_prices(mock["price"], mock["change_pct"] / 5,  78,  volatility=0.002),
+        "1W":  _mock_prices(mock["price"], mock["change_pct"],       35,  volatility=0.005),
+        "1M":  _mock_prices(mock["price"], mock["change_pct"],       30,  volatility=0.008),
+        "3M":  _mock_prices(mock["price"], mock["change_pct"] * 2,  90,  volatility=0.010),
+        "6M":  _mock_prices(mock["price"], mock["change_pct"] * 4,  180, volatility=0.012),
+        "YTD": _mock_prices(mock["price"], mock["change_pct"] * 3,  105, volatility=0.010),
+        "1Y":  _mock_prices(mock["price"], mock["change_pct"] * 8,  52,  volatility=0.015),
+        "2Y":  _mock_prices(mock["price"], mock["change_pct"] * 14, 104, volatility=0.018),
+        "5Y":  _mock_prices(mock["price"], mock["change_pct"] * 30, 60,  volatility=0.022),
+        "10Y": _mock_prices(mock["price"], mock["change_pct"] * 55, 120, volatility=0.025),
+        "MAX": _mock_prices(mock["price"], mock["change_pct"] * 60, 240, volatility=0.025),
     }
 
     return PortfolioResponse(
@@ -277,10 +282,19 @@ async def portfolio(ticker: str) -> PortfolioResponse:
         sparkline_data=sparkline,
         chart_data=chart_data,
         pe_ratio=mock.get("pe_ratio"),
+        market_cap=mock.get("market_cap"),
         revenue_change=mock.get("revenue_change"),
         risk_flags=0,
         last_filing=None,
         yahoo_url=f"https://finance.yahoo.com/quote/{ticker}",
+        open_price=mock.get("open_price"),
+        day_high=mock.get("day_high"),
+        day_low=mock.get("day_low"),
+        volume=mock.get("volume"),
+        week_52_high=mock.get("week_52_high"),
+        week_52_low=mock.get("week_52_low"),
+        eps=mock.get("eps"),
+        beta=mock.get("beta"),
     )
 
 

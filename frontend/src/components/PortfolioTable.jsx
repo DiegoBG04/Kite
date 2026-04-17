@@ -218,7 +218,7 @@ export default function PortfolioTable({ holdings, portfolioData, onSelectStock,
                   </TD>
 
                   {/* Price */}
-                  <TD right mono>
+                  <TD right>
                     {r.price != null ? (
                       <div>
                         <div>{fmt(r.price)}</div>
@@ -230,7 +230,7 @@ export default function PortfolioTable({ holdings, portfolioData, onSelectStock,
                   </TD>
 
                   {/* Shares */}
-                  <TD right mono>{r.shares.toLocaleString()}</TD>
+                  <TD right>{r.shares.toLocaleString()}</TD>
 
                   {/* Avg Cost */}
                   <TD right>{r.costBasis ? fmt(r.costBasis) : <span style={{ color: "var(--kite-muted)" }}>—</span>}</TD>
