@@ -1,11 +1,3 @@
-/**
- * NewsCard.jsx — Robinhood-style News Card
- *
- * Layout:
- *   Left: source + time · title/summary · ticker tags with % change
- *   Right: thumbnail image
- */
-
 function timeAgo(isoString) {
   if (!isoString) return "";
   const diff = Date.now() - new Date(isoString).getTime();
@@ -16,7 +8,14 @@ function timeAgo(isoString) {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-export default function NewsCard({ title, source, publishedAt, tickers = [], summary, url, imageUrl, portfolioData = {} }) {
+export default function NewsCard({ title, source, publishedAt, tickers = [], summary, url, imageUrl, portfolioData = {}, sentiment }) {
+  const sentimentColor = sentiment === "positive" ? "var(--kite-positive)"
+    : sentiment === "negative" ? "var(--kite-negative)"
+    : "var(--kite-muted)";
+  const sentimentLabel = sentiment === "positive" ? "▲ Positive"
+    : sentiment === "negative" ? "▼ Negative"
+    : "Neutral";
+
   return (
     <a
       href={url}
@@ -24,42 +23,78 @@ export default function NewsCard({ title, source, publishedAt, tickers = [], sum
       rel="noopener noreferrer"
       style={{
         display: "flex",
-        gap: "12px",
-        padding: "14px 0",
-        borderBottom: "1px solid var(--kite-border)",
+        flexDirection: "column",
+        background: "var(--kite-surface)",
+        border: "1px solid var(--kite-border)",
+        borderRadius: "var(--radius-md)",
+        overflow: "hidden",
         textDecoration: "none",
         cursor: "pointer",
+        transition: "box-shadow 0.15s",
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(61,46,15,0.10)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
     >
-      {/* Left: text content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Source + time */}
-        <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "4px" }}>
-          {source}{publishedAt ? ` · ${timeAgo(publishedAt)}` : ""}
+      {/* Thumbnail */}
+      <div style={{
+        width: "100%",
+        height: "130px",
+        background: "var(--kite-border)",
+        flexShrink: 0,
+        overflow: "hidden",
+      }}>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            onError={(e) => { e.target.style.display = "none"; }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "var(--kite-amber-wash)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: "24px", opacity: 0.25 }}>◈</span>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", flex: 1 }}>
+        {/* Source + time + sentiment */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+          <span style={{ fontSize: "10px", color: "var(--kite-muted)" }}>
+            {source}{publishedAt ? ` · ${timeAgo(publishedAt)}` : ""}
+          </span>
+          {sentiment && (
+            <span style={{ fontSize: "9px", fontWeight: "700", color: sentimentColor, letterSpacing: "0.04em" }}>
+              {sentimentLabel}
+            </span>
+          )}
         </div>
 
         {/* Title */}
         <div style={{
           fontFamily: "var(--font-display)",
-          fontSize: "14px",
+          fontSize: "13px",
+          fontWeight: "600",
           color: "var(--kite-heading)",
           lineHeight: "1.4",
-          marginBottom: summary ? "6px" : "8px",
+          marginBottom: "6px",
           display: "-webkit-box",
           WebkitLineClamp: 3,
           WebkitBoxOrient: "vertical",
           overflow: "hidden",
+          flex: 1,
         }}>
           {title}
         </div>
 
-        {/* Summary if available */}
+        {/* Summary */}
         {summary && (
           <div style={{
-            fontSize: "12px",
+            fontSize: "11px",
             color: "var(--kite-body)",
             lineHeight: "1.5",
-            marginBottom: "8px",
+            marginBottom: "10px",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
@@ -69,13 +104,13 @@ export default function NewsCard({ title, source, publishedAt, tickers = [], sum
           </div>
         )}
 
-        {/* Ticker tags with % change */}
+        {/* Ticker tags */}
         {tickers.length > 0 && (
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", marginTop: "auto", paddingTop: "8px" }}>
             {tickers.map((t) => {
               const stock = portfolioData[t];
               const change = stock?.change_pct;
-              const isPositive = change >= 0;
+              const isPositive = (change ?? 0) >= 0;
               return (
                 <span
                   key={t}
@@ -105,25 +140,6 @@ export default function NewsCard({ title, source, publishedAt, tickers = [], sum
           </div>
         )}
       </div>
-
-      {/* Right: thumbnail */}
-      {imageUrl && (
-        <div style={{
-          width: 80,
-          height: 80,
-          flexShrink: 0,
-          borderRadius: "var(--radius-sm)",
-          overflow: "hidden",
-          background: "var(--kite-border)",
-        }}>
-          <img
-            src={imageUrl}
-            alt=""
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
-        </div>
-      )}
     </a>
   );
 }
