@@ -879,7 +879,7 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
             <div style={{ flex: 1, overflowY: "auto" }}>
               {activeTab === "financials" && (
                 <FinancialsTab
-                  stock={stock}
+                  stock={displayStock}
                   financials={financials}
                   finPeriod={finPeriod}
                   setFinPeriod={setFinPeriod}

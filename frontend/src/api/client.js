@@ -46,16 +46,8 @@ async function apiFetch(path, options = {}) {
  * @returns {Promise<Object[]>} Array of PortfolioResponse objects (chart_data is empty)
  */
 export async function getQuotes(tickers) {
-  const results = [];
-  for (const ticker of tickers) {
-    try {
-      const data = await apiFetch(`/quote/${ticker}`);
-      results.push(data);
-    } catch (err) {
-      console.error(`Failed to fetch quote for ${ticker}:`, err);
-    }
-  }
-  return results;
+  if (!tickers.length) return [];
+  return apiFetch(`/quotes?tickers=${tickers.join(",")}`);
 }
 
 /**

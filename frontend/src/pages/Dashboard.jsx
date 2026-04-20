@@ -14,7 +14,7 @@ import PortfolioEditModal from "../components/PortfolioEditModal";
 
 export default function Dashboard() {
   const { holdings, replaceHoldings }                      = useHoldings();
-  const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
+  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist } = useWatchlist();
   const [portfolioData, setPortfolioData]                  = useState({});
   const [drawerStock, setDrawerStock]                      = useState(null);
   const [selectedTicker, setSelectedTicker]                = useState(null);
@@ -63,6 +63,7 @@ export default function Dashboard() {
         onSelect={handleSelect}
         onAdd={addToWatchlist}
         onRemove={removeFromWatchlist}
+        onReorder={reorderWatchlist}
       />
 
       <ChatWidget tickers={holdingTickers.length ? holdingTickers : ["AAPL", "MSFT", "NVDA"]} />

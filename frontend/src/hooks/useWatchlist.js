@@ -29,5 +29,14 @@ export function useWatchlist() {
     setWatchlist((prev) => prev.filter((w) => w.ticker !== ticker.toUpperCase()));
   }
 
-  return { watchlist, addToWatchlist, removeFromWatchlist };
+  function reorderWatchlist(fromIndex, toIndex) {
+    setWatchlist((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return next;
+    });
+  }
+
+  return { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist };
 }

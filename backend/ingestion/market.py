@@ -93,6 +93,99 @@ _quote_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 QUOTE_CACHE_TTL = 60  # 1 minute — refreshed often for live prices
 
 
+def _parse_quote_payload(ticker: str, data: dict) -> dict:
+    """Build a PortfolioResponse-compatible dict from a single /quote payload."""
+    def _safe(key):
+        try: return float(data[key])
+        except (KeyError, TypeError, ValueError): return None
+
+    def _safe_nested(outer, inner):
+        try: return float(data[outer][inner])
+        except (KeyError, TypeError, ValueError): return None
+
+    price      = _safe("close") or _safe("previous_close") or 0.0
+    change_pct = _safe("percent_change") or 0.0
+    name       = data.get("name") or ticker
+
+    if not price:
+        raise ValueError(f"No price data returned for {ticker}")
+
+    return {
+        "ticker":       ticker,
+        "name":         name,
+        "price":        round(price, 2),
+        "change_pct":   round(change_pct, 2),
+        "sparkline_data": [],
+        "chart_data":   {},
+        "pe_ratio":     _safe("pe"),
+        "market_cap":   _safe("market_cap"),
+        "revenue_change": None,
+        "risk_flags":   0,
+        "last_filing":  None,
+        "yahoo_url":    f"https://finance.yahoo.com/quote/{ticker}",
+        "open_price":   _safe("open"),
+        "day_high":     _safe("high"),
+        "day_low":      _safe("low"),
+        "volume":       _safe("volume"),
+        "week_52_high": _safe_nested("fifty_two_week", "high"),
+        "week_52_low":  _safe_nested("fifty_two_week", "low"),
+        "eps":          _safe("eps"),
+        "beta":         _safe("beta"),
+    }
+
+
+def get_batch_quotes(tickers: list[str]) -> list[dict]:
+    """
+    Fetch quotes for multiple tickers in a single API call.
+    TwelveData /quote accepts comma-separated symbols — 30 tickers = 1 call.
+    Returns a list of PortfolioResponse-compatible dicts (skips failed tickers).
+    """
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TWELVE_DATA_API_KEY environment variable is not set")
+
+    tickers = [t.upper() for t in tickers]
+    now = time.time()
+
+    # Return all from cache if still fresh
+    missing = [t for t in tickers if not (_quote_cache.get(t) and _quote_cache[t]["expires"] > now)]
+    cached_results = [_quote_cache[t]["data"] for t in tickers if t not in missing]
+
+    if not missing:
+        return cached_results
+
+    logger.info(f"[BATCH_QUOTE] Fetching {len(missing)} tickers: {', '.join(missing)}")
+
+    def _fetch():
+        resp = requests.get(f"{TWELVE_BASE}/quote", params={
+            "symbol": ",".join(missing),
+            "apikey": api_key,
+        }, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
+
+    raw = _api_call(_fetch)
+
+    # Single ticker → dict directly; multiple → dict keyed by ticker
+    if len(missing) == 1:
+        raw = {missing[0]: raw}
+
+    results = list(cached_results)
+    for ticker in missing:
+        payload = raw.get(ticker, {})
+        if payload.get("status") == "error":
+            logger.warning(f"[BATCH_QUOTE] Error for {ticker}: {payload.get('message')}")
+            continue
+        try:
+            result = _parse_quote_payload(ticker, payload)
+            _quote_cache[ticker] = {"data": result, "expires": now + QUOTE_CACHE_TTL}
+            results.append(result)
+        except Exception as exc:
+            logger.warning(f"[BATCH_QUOTE] Skipping {ticker}: {exc}")
+
+    return results
+
+
 def get_quote_data(ticker: str) -> dict:
     """
     Lightweight quote — 1 API call only. Returns price, stats, and sparkline.

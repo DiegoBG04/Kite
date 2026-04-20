@@ -233,6 +233,35 @@ def _mock_prices(base_price: float, change_pct: float, points: int, volatility: 
         prices.append(round(price, 2))
     return prices
 
+@app.get("/quotes", response_model=list[PortfolioResponse])
+async def batch_quotes(tickers: str = Query(..., description="Comma-separated tickers")) -> list[PortfolioResponse]:
+    """
+    Batch quote — fetches all tickers in a single TwelveData API call.
+    Used by the dashboard for fast initial load.
+    """
+    ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
+    if not ticker_list:
+        return []
+    try:
+        from backend.ingestion.market import get_batch_quotes
+        data = get_batch_quotes(ticker_list)
+        return [PortfolioResponse(**d) for d in data]
+    except Exception as exc:
+        logger.warning(f"[QUOTES] Batch fetch failed ({exc}) — falling back to mock data")
+
+    return [
+        PortfolioResponse(
+            ticker=t,
+            name=_MOCK_PORTFOLIO.get(t, {}).get("name", t),
+            price=_MOCK_PORTFOLIO.get(t, {}).get("price", 0.0),
+            change_pct=_MOCK_PORTFOLIO.get(t, {}).get("change_pct", 0.0),
+            sparkline_data=[], chart_data={},
+            yahoo_url=f"https://finance.yahoo.com/quote/{t}",
+        )
+        for t in ticker_list
+    ]
+
+
 @app.get("/quote/{ticker}", response_model=PortfolioResponse)
 async def quote_ticker(ticker: str) -> PortfolioResponse:
     """
