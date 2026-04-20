@@ -8,7 +8,10 @@ function timeAgo(isoString) {
   return `${Math.floor(hrs / 24)}d`;
 }
 
+import { useState } from "react";
+
 export default function NewsCard({ title, source, publishedAt, tickers = [], summary, url, imageUrl, portfolioData = {}, sentiment }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const sentimentColor = sentiment === "positive" ? "var(--kite-positive)"
     : sentiment === "negative" ? "var(--kite-negative)"
     : "var(--kite-muted)";
@@ -43,12 +46,12 @@ export default function NewsCard({ title, source, publishedAt, tickers = [], sum
         flexShrink: 0,
         overflow: "hidden",
       }}>
-        {imageUrl ? (
+        {imageUrl && !imgFailed ? (
           <img
             src={imageUrl}
             alt=""
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={(e) => { e.target.style.display = "none"; }}
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div style={{ width: "100%", height: "100%", background: "var(--kite-amber-wash)", display: "flex", alignItems: "center", justifyContent: "center" }}>
