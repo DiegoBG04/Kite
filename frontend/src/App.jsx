@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import News from "./pages/News";
 import Profile from "./pages/Profile";
+import { useTheme } from "./hooks/useTheme";
 
 const navStyle = {
   display: "flex",
@@ -46,6 +47,7 @@ const activeLinkStyle = {
 };
 
 export default function App() {
+  useTheme(); // applies data-theme to <html> on mount and when changed
   return (
     <BrowserRouter>
       <nav style={navStyle}>

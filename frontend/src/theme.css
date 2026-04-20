@@ -31,6 +31,25 @@
 }
 
 /* ============================================================
+   Dark mode overrides
+   ============================================================ */
+
+[data-theme="dark"] {
+  --kite-cream:       #141210;
+  --kite-surface:     #1C1A16;
+  --kite-amber-wash:  #2A2010;
+  --kite-amber:       #F5A623;
+  --kite-amber-dark:  #F5A623;
+  --kite-heading:     #F0EBE0;
+  --kite-body:        #C4B89A;
+  --kite-muted:       #7A7060;
+  --kite-border:      #2E2A22;
+  --kite-positive:    #3D8B65;
+  --kite-negative:    #CC5252;
+  --shadow-card:      0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
    Global resets & base styles
    ============================================================ */
 
