@@ -31,6 +31,35 @@ _cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 FIN_CACHE_TTL = 3600  # 1 hour — DB reads are fast, cache to avoid hammering Supabase
 _fin_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 
+_stats_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
+STATS_CACHE_TTL = 3600  # 1 hour — market cap / P/E don't change fast
+
+
+def _get_yf_stats(ticker: str) -> dict:
+    """
+    Fetch market_cap and pe_ratio from yfinance as a fallback when
+    TwelveData free tier returns null for those fields.
+    Results cached 1 hour — yfinance hits Yahoo Finance servers.
+    """
+    now = time.time()
+    cached = _stats_cache.get(ticker)
+    if cached and cached["expires"] > now:
+        return cached["data"]
+
+    try:
+        import yfinance as yf
+        info = yf.Ticker(ticker).fast_info
+        data = {
+            "market_cap": getattr(info, "market_cap", None),
+            "pe_ratio":   getattr(info, "pe_ratio",   None),
+        }
+    except Exception as exc:
+        logger.warning(f"[YF_STATS] Failed for {ticker}: {exc}")
+        data = {"market_cap": None, "pe_ratio": None}
+
+    _stats_cache[ticker] = {"data": data, "expires": now + STATS_CACHE_TTL}
+    return data
+
 # ── Rate limiter ─────────────────────────────────────────────────────────────
 # Twelve Data free tier: 8 calls/minute. We stay at ≤7 to leave headroom.
 # Uses a global deque of call timestamps so concurrent fetches respect the limit.
@@ -178,6 +207,11 @@ def get_batch_quotes(tickers: list[str]) -> list[dict]:
             continue
         try:
             result = _parse_quote_payload(ticker, payload)
+            # Supplement with yfinance if TwelveData free tier omitted these
+            if result["market_cap"] is None or result["pe_ratio"] is None:
+                yf = _get_yf_stats(ticker)
+                result["market_cap"] = result["market_cap"] or yf["market_cap"]
+                result["pe_ratio"]   = result["pe_ratio"]   or yf["pe_ratio"]
             _quote_cache[ticker] = {"data": result, "expires": now + QUOTE_CACHE_TTL}
             results.append(result)
         except Exception as exc:
@@ -204,6 +238,11 @@ def get_quote_data(ticker: str) -> dict:
     logger.info(f"[QUOTE] Fetching quote for {ticker}")
     price, change_pct, name, market_cap, pe_ratio, open_price, day_high, day_low, volume, week_52_high, week_52_low, eps, beta = \
         _api_call(lambda: _get_quote(ticker, api_key))
+
+    if market_cap is None or pe_ratio is None:
+        yf = _get_yf_stats(ticker)
+        market_cap = market_cap or yf["market_cap"]
+        pe_ratio   = pe_ratio   or yf["pe_ratio"]
 
     result = {
         "ticker": ticker,

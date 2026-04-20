@@ -515,7 +515,7 @@ function TrendTile({ label, value, yoyPct, data, dataKey, goodIfPositive = true,
       {!hasYoy && (
         <div style={{ fontSize: "11px", color: "var(--kite-border)" }}>no prior year</div>
       )}
-      <div style={{ height: 52, marginTop: "6px" }}>
+      <div style={{ height: 72, marginTop: "8px" }}>
         <TrendSparkline data={data} dataKey={dataKey} goodIfPositive={goodIfPositive} />
       </div>
     </div>
@@ -566,7 +566,7 @@ function FinancialsTab({ stock, financials, finPeriod, setFinPeriod, pricePeriod
       <SectionLabel>Growth</SectionLabel>
 
       {/* Revenue composition — full-width stacked bar */}
-      <ChartCard title="Revenue Composition" latestValue={fmtBig(latest.revenue)} isKpi fullWidth>
+      <ChartCard title="Revenue Composition" latestValue={fmtBig(latest.revenue)} fullWidth>
         <RevenueCompositionChart data={finData} labelFn={labelFn} />
       </ChartCard>
 
@@ -574,10 +574,10 @@ function FinancialsTab({ stock, financials, finPeriod, setFinPeriod, pricePeriod
         <ChartCard title="Revenue" latestValue={fmtBig(latest.revenue)} isKpi>
           <FinancialBar data={finData} dataKey="revenue" color="#F5A623" labelFn={labelFn} />
         </ChartCard>
-        <ChartCard title="Gross Profit" latestValue={fmtBig(latest.gross_profit)} isKpi>
+        <ChartCard title="Gross Profit" latestValue={fmtBig(latest.gross_profit)}>
           <FinancialBar data={finData} dataKey="gross_profit" color="#C47D0A" labelFn={labelFn} />
         </ChartCard>
-        <ChartCard title="Operating Income" latestValue={fmtBig(latest.operating_income)} isKpi>
+        <ChartCard title="Operating Income" latestValue={fmtBig(latest.operating_income)}>
           <FinancialBar data={finData} dataKey="operating_income" color="#5B8DB8" labelFn={labelFn} />
         </ChartCard>
         <ChartCard title="Net Income" latestValue={fmtBig(latest.net_income)} isKpi>
@@ -597,7 +597,7 @@ function FinancialsTab({ stock, financials, finPeriod, setFinPeriod, pricePeriod
         <ChartCard title="Operating Margin" latestValue={latest.operating_margin != null ? `${latest.operating_margin.toFixed(1)}%` : null} isKpi>
           <FinancialBar data={finData} dataKey="operating_margin" color="#5B8DB8" labelFn={labelFn} pct />
         </ChartCard>
-        <ChartCard title="Net Margin" latestValue={latest.net_margin != null ? `${latest.net_margin.toFixed(1)}%` : null} isKpi>
+        <ChartCard title="Net Margin" latestValue={latest.net_margin != null ? `${latest.net_margin.toFixed(1)}%` : null}>
           <FinancialBar data={finData} dataKey="net_margin" color="#2D6A4F" labelFn={labelFn} pct />
         </ChartCard>
       </div>
@@ -605,7 +605,7 @@ function FinancialsTab({ stock, financials, finPeriod, setFinPeriod, pricePeriod
       {/* Financial Health */}
       <SectionLabel>Financial Health</SectionLabel>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-        <ChartCard title="Operating Cash Flow" latestValue={fmtBig(latest.operating_cash_flow)} isKpi>
+        <ChartCard title="Operating Cash Flow" latestValue={fmtBig(latest.operating_cash_flow)}>
           <FinancialBar data={finData} dataKey="operating_cash_flow" color="#4A90D9" labelFn={labelFn} />
         </ChartCard>
         <ChartCard title="Cash & Equivalents" latestValue={fmtBig(latest.cash_and_equivalents)}>
@@ -619,8 +619,52 @@ function FinancialsTab({ stock, financials, finPeriod, setFinPeriod, pricePeriod
   );
 }
 
+// Multi-metric overview chart: Revenue bars + Net Income + FCF lines
+function OverviewChart({ data }) {
+  if (!data || data.length < 2) return <NoData />;
+  const chartData = [...data].reverse().slice(-8).map((d) => ({
+    label:      yearLabel(d.date),
+    revenue:    d.revenue,
+    net_income: d.net_income,
+    fcf:        d.free_cash_flow,
+  }));
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} stroke="#EAE5D8" strokeDasharray="3 4" opacity={0.7} />
+        <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#B0A080" }} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={fmtBig} tick={{ fontSize: 9, fill: "#B0A080" }} axisLine={false} tickLine={false} width={38} />
+        <Tooltip
+          contentStyle={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", fontSize: "11px" }}
+          formatter={(v, name) => [fmtBig(v), name === "revenue" ? "Revenue" : name === "net_income" ? "Net Income" : "Free Cash Flow"]}
+          labelStyle={{ color: "var(--kite-muted)", fontSize: "10px" }}
+        />
+        <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }} iconType="circle" iconSize={7}
+          formatter={(v) => v === "revenue" ? "Revenue" : v === "net_income" ? "Net Income" : "Free Cash Flow"} />
+        <Bar dataKey="revenue"    fill="#F5A623" opacity={0.85} radius={[2,2,0,0]} name="revenue" />
+        <Bar dataKey="net_income" fill="#2D6A4F" opacity={0.85} radius={[2,2,0,0]} name="net_income">
+          {chartData.map((d, i) => <Cell key={i} fill={d.net_income < 0 ? "#B54040" : "#2D6A4F"} />)}
+        </Bar>
+        <Bar dataKey="fcf"        fill="#7B5EA7" opacity={0.85} radius={[2,2,0,0]} name="fcf">
+          {chartData.map((d, i) => <Cell key={i} fill={d.fcf < 0 ? "#B54040" : "#7B5EA7"} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 function TrendsTab({ financials }) {
-  const annual = withMargins(financials?.annual ?? []);
+  const rawAnnual = financials?.annual ?? [];
+  const annual = withMargins(rawAnnual).map((d, i, arr) => ({
+    ...d,
+    revenue_growth:   i < arr.length - 1 && arr[i + 1]?.revenue
+      ? ((d.revenue - arr[i + 1].revenue) / Math.abs(arr[i + 1].revenue)) * 100
+      : null,
+    fcf_margin:       d.revenue ? (d.free_cash_flow / d.revenue) * 100 : null,
+    cash_conversion:  d.net_income ? (d.free_cash_flow / d.net_income) * 100 : null,
+    debt_to_revenue:  d.revenue && d.total_debt ? (d.total_debt / d.revenue) * 100 : null,
+  }));
+
   const hasData = annual.length > 0;
 
   if (!hasData) {
@@ -633,36 +677,17 @@ function TrendsTab({ financials }) {
     );
   }
 
-  const metrics = {
-    growth: [
-      { label: "Revenue",          key: "revenue",             goodIfPositive: true  },
-      { label: "Gross Profit",     key: "gross_profit",        goodIfPositive: true  },
-      { label: "Operating Income", key: "operating_income",    goodIfPositive: true  },
-      { label: "Net Income",       key: "net_income",          goodIfPositive: true  },
-      { label: "Free Cash Flow",   key: "free_cash_flow",      goodIfPositive: true  },
-    ],
-    profitability: [
-      { label: "Gross Margin",     key: "gross_margin",        goodIfPositive: true,  pct: true },
-      { label: "Operating Margin", key: "operating_margin",    goodIfPositive: true,  pct: true },
-      { label: "Net Margin",       key: "net_margin",          goodIfPositive: true,  pct: true },
-    ],
-    health: [
-      { label: "Operating Cash Flow", key: "operating_cash_flow", goodIfPositive: true  },
-      { label: "Cash & Equivalents",  key: "cash_and_equivalents", goodIfPositive: true  },
-      { label: "Total Debt",          key: "total_debt",           goodIfPositive: false }, // lower is better
-    ],
-  };
-
-  function renderSection(title, items, cols = 2) {
+  function renderSection(title, items) {
     return (
       <>
         <SectionLabel>{title}</SectionLabel>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "12px" }}>
-          {items.map(({ label, key, goodIfPositive, pct }) => {
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+          {items.map(({ label, key, goodIfPositive, pct, suffix = "" }) => {
             const latest  = annual[0]?.[key];
             const yoyPct  = yoy(annual, key);
             const display = latest == null ? "—"
               : pct ? `${latest.toFixed(1)}%`
+              : suffix ? `${latest.toFixed(1)}${suffix}`
               : fmtBig(latest);
             return (
               <TrendTile
@@ -673,7 +698,6 @@ function TrendsTab({ financials }) {
                 data={annual}
                 dataKey={key}
                 goodIfPositive={goodIfPositive}
-                pct={pct}
               />
             );
           })}
@@ -684,12 +708,49 @@ function TrendsTab({ financials }) {
 
   return (
     <div style={{ padding: "20px 24px 40px" }}>
-      <div style={{ fontSize: "12px", color: "var(--kite-muted)", marginBottom: "4px" }}>
-        Annual data · <span style={{ color: "var(--kite-positive)" }}>↑ Green</span> = right direction · <span style={{ color: "var(--kite-negative)" }}>↓ Red</span> = concern
+      {/* Overview chart */}
+      <div style={{
+        background: "var(--kite-surface)",
+        border: "1px solid var(--kite-border)",
+        borderRadius: "var(--radius-md)",
+        padding: "14px 16px 10px",
+        marginBottom: "20px",
+      }}>
+        <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--kite-muted)", letterSpacing: "0.04em", marginBottom: "8px" }}>
+          REVENUE · NET INCOME · FREE CASH FLOW
+        </div>
+        <div style={{ height: 200 }}>
+          <OverviewChart data={annual} />
+        </div>
       </div>
-      {renderSection("Growth", metrics.growth, 3)}
-      {renderSection("Profitability", metrics.profitability, 3)}
-      {renderSection("Financial Health", metrics.health, 3)}
+
+      <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "16px" }}>
+        Annual data · <span style={{ color: "var(--kite-positive)" }}>↑ Green</span> = healthy direction · <span style={{ color: "var(--kite-negative)" }}>↓ Red</span> = concern
+      </div>
+
+      {renderSection("Growth", [
+        { label: "Revenue",          key: "revenue",        goodIfPositive: true  },
+        { label: "Revenue Growth",   key: "revenue_growth", goodIfPositive: true,  pct: true },
+        { label: "Net Income",       key: "net_income",     goodIfPositive: true  },
+      ])}
+
+      {renderSection("Profitability & Quality", [
+        { label: "Gross Margin",     key: "gross_margin",     goodIfPositive: true, pct: true },
+        { label: "Operating Margin", key: "operating_margin", goodIfPositive: true, pct: true },
+        { label: "Net Margin",       key: "net_margin",       goodIfPositive: true, pct: true },
+        { label: "Free Cash Flow",   key: "free_cash_flow",   goodIfPositive: true },
+        { label: "FCF Margin",       key: "fcf_margin",       goodIfPositive: true, pct: true },
+        { label: "Cash Conversion",  key: "cash_conversion",  goodIfPositive: true, pct: true },
+      ])}
+
+      {renderSection("Balance Sheet Health", [
+        { label: "Operating Cash Flow", key: "operating_cash_flow", goodIfPositive: true  },
+        { label: "Cash & Equivalents",  key: "cash_and_equivalents", goodIfPositive: true  },
+        { label: "Total Debt",          key: "total_debt",           goodIfPositive: false },
+        { label: "Debt / Revenue",      key: "debt_to_revenue",      goodIfPositive: false, pct: true },
+        { label: "Gross Profit",        key: "gross_profit",         goodIfPositive: true  },
+        { label: "Operating Income",    key: "operating_income",     goodIfPositive: true  },
+      ])}
     </div>
   );
 }
