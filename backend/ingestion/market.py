@@ -89,6 +89,55 @@ _PERIOD_SLICE = {
 }
 
 
+_quote_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
+QUOTE_CACHE_TTL = 60  # 1 minute — refreshed often for live prices
+
+
+def get_quote_data(ticker: str) -> dict:
+    """
+    Lightweight quote — 1 API call only. Returns price, stats, and sparkline.
+    No chart time series. Used for portfolio table and watchlist price display.
+    """
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TWELVE_DATA_API_KEY environment variable is not set")
+
+    ticker = ticker.upper()
+
+    cached = _quote_cache.get(ticker)
+    if cached and cached["expires"] > time.time():
+        return cached["data"]
+
+    logger.info(f"[QUOTE] Fetching quote for {ticker}")
+    price, change_pct, name, market_cap, pe_ratio, open_price, day_high, day_low, volume, week_52_high, week_52_low, eps, beta = \
+        _api_call(lambda: _get_quote(ticker, api_key))
+
+    result = {
+        "ticker": ticker,
+        "name": name or ticker,
+        "price": round(price, 2),
+        "change_pct": round(change_pct, 2),
+        "sparkline_data": [],
+        "chart_data": {},
+        "pe_ratio": pe_ratio,
+        "market_cap": market_cap,
+        "revenue_change": None,
+        "risk_flags": 0,
+        "last_filing": None,
+        "yahoo_url": f"https://finance.yahoo.com/quote/{ticker}",
+        "open_price": open_price,
+        "day_high": day_high,
+        "day_low": day_low,
+        "volume": volume,
+        "week_52_high": week_52_high,
+        "week_52_low": week_52_low,
+        "eps": eps,
+        "beta": beta,
+    }
+    _quote_cache[ticker] = {"data": result, "expires": time.time() + QUOTE_CACHE_TTL}
+    return result
+
+
 def get_portfolio_data(ticker: str) -> dict:
     """
     Fetch current price, change %, sparkline, and chart data for a single ticker.

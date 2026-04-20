@@ -233,6 +233,43 @@ def _mock_prices(base_price: float, change_pct: float, points: int, volatility: 
         prices.append(round(price, 2))
     return prices
 
+@app.get("/quote/{ticker}", response_model=PortfolioResponse)
+async def quote_ticker(ticker: str) -> PortfolioResponse:
+    """
+    Lightweight quote — 1 API call only (no chart time series).
+    Used by the dashboard table and watchlist for fast initial load.
+    Falls back to mock data for unknown tickers.
+    """
+    ticker = ticker.upper()
+    try:
+        from backend.ingestion.market import get_quote_data
+        data = get_quote_data(ticker)
+        return PortfolioResponse(**data)
+    except Exception as exc:
+        logger.warning(f"[QUOTE] Failed for {ticker} ({exc}) — using mock data")
+
+    mock = _MOCK_PORTFOLIO.get(ticker, {"name": ticker, "price": 0.0, "change_pct": 0.0})
+    return PortfolioResponse(
+        ticker=ticker,
+        name=mock.get("name", ticker),
+        price=mock.get("price", 0.0),
+        change_pct=mock.get("change_pct", 0.0),
+        sparkline_data=[],
+        chart_data={},
+        pe_ratio=mock.get("pe_ratio"),
+        market_cap=mock.get("market_cap"),
+        open_price=mock.get("open_price"),
+        day_high=mock.get("day_high"),
+        day_low=mock.get("day_low"),
+        volume=mock.get("volume"),
+        week_52_high=mock.get("week_52_high"),
+        week_52_low=mock.get("week_52_low"),
+        eps=mock.get("eps"),
+        beta=mock.get("beta"),
+        yahoo_url=f"https://finance.yahoo.com/quote/{ticker}",
+    )
+
+
 @app.get("/portfolio/{ticker}", response_model=PortfolioResponse)
 async def portfolio(ticker: str) -> PortfolioResponse:
     """

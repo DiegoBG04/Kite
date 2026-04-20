@@ -16,7 +16,7 @@ import {
   BarChart, Bar,
   XAxis, YAxis, Tooltip, CartesianGrid, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { getFinancials, getNews } from "../api/client";
+import { getFinancials, getNews, getPortfolioFull } from "../api/client";
 import NewsCard from "./NewsCard";
 import CompanyLogo from "./CompanyLogo";
 
@@ -726,13 +726,24 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
   const [news,         setNews]         = useState([]);
   const [newsLoading,  setNewsLoading]  = useState(false);
   const [expanded,     setExpanded]     = useState(false);
+  // Full chart data fetched lazily — the parent passes lightweight quote data
+  const [fullStock,    setFullStock]    = useState(null);
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
-    if (!stock) { setExpanded(false); return; }
+    if (!stock) { setExpanded(false); setFullStock(null); return; }
     setActiveTab("financials");
     setPricePeriod("1M");
     setFinancials(null);
     setNews([]);
+    setFullStock(null);
+
+    // Fetch full portfolio data (with chart_data) for the price chart
+    setChartLoading(true);
+    getPortfolioFull(stock.ticker)
+      .then(setFullStock)
+      .catch(() => setFullStock(stock))  // fall back to the lightweight quote
+      .finally(() => setChartLoading(false));
 
     getFinancials(stock.ticker)
       .then(setFinancials)
@@ -744,6 +755,9 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
       .catch(() => {})
       .finally(() => setNewsLoading(false));
   }, [stock?.ticker]);
+
+  // Merge: use fullStock for chart_data, fall back to the prop for price/stats
+  const displayStock = fullStock ?? stock;
 
   const isOpen     = !!stock;
   const isPositive = (stock?.change_pct ?? 0) >= 0;

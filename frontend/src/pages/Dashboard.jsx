@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getPortfolio } from "../api/client";
+import { getQuotes } from "../api/client";
 import { useHoldings } from "../hooks/useHoldings";
 import { useWatchlist } from "../hooks/useWatchlist";
 import PortfolioTable from "../components/PortfolioTable";
@@ -24,10 +24,11 @@ export default function Dashboard() {
   const watchlistTickers = watchlist.map((w) => w.ticker).filter((t) => !holdingTickers.includes(t));
   const allTickers       = [...new Set([...holdingTickers, ...watchlistTickers])];
 
-  // Fetch price data for all tickers (holdings + watchlist)
+  // Fetch lightweight quote data (1 API call per ticker) for all tickers.
+  // Chart data is loaded separately by CompanyDrawer only when a stock is opened.
   useEffect(() => {
     if (allTickers.length === 0) return;
-    getPortfolio(allTickers).then((stocks) => {
+    getQuotes(allTickers).then((stocks) => {
       setPortfolioData((prev) => {
         const next = { ...prev };
         stocks.forEach((s) => { next[s.ticker] = s; });

@@ -37,10 +37,41 @@ async function apiFetch(path, options = {}) {
  * @param {string[]} tickers - e.g. ["AAPL", "MSFT"]
  * @returns {Promise<Object[]>} Array of PortfolioResponse objects
  */
+/**
+ * Fetch lightweight quote data (price, change %, stats — no chart series) for
+ * a list of tickers. Calls GET /quote/{ticker} — only 1 API call per ticker,
+ * so the dashboard loads immediately without hitting rate limits.
+ *
+ * @param {string[]} tickers - e.g. ["AAPL", "MSFT"]
+ * @returns {Promise<Object[]>} Array of PortfolioResponse objects (chart_data is empty)
+ */
+export async function getQuotes(tickers) {
+  const results = [];
+  for (const ticker of tickers) {
+    try {
+      const data = await apiFetch(`/quote/${ticker}`);
+      results.push(data);
+    } catch (err) {
+      console.error(`Failed to fetch quote for ${ticker}:`, err);
+    }
+  }
+  return results;
+}
+
+/**
+ * Fetch full portfolio data (price + all chart time series) for a single ticker.
+ * Called only when the user opens the CompanyDrawer for that stock.
+ * Uses GET /portfolio/{ticker} — ~6 API calls, cached 15 min server-side.
+ *
+ * @param {string} ticker - e.g. "AAPL"
+ * @returns {Promise<Object>} PortfolioResponse with chart_data populated
+ */
+export async function getPortfolioFull(ticker) {
+  return apiFetch(`/portfolio/${ticker}`);
+}
+
+/** @deprecated Use getQuotes for dashboard loading, getPortfolioFull for drawer. */
 export async function getPortfolio(tickers) {
-  // Fetch sequentially to avoid hitting Twelve Data's 8 calls/min rate limit.
-  // After the first load the backend cache (15 min TTL) makes subsequent
-  // calls instant regardless of order.
   const results = [];
   for (const ticker of tickers) {
     try {
