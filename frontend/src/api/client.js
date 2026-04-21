@@ -129,6 +129,18 @@ export async function getFinancials(ticker) {
 }
 
 /**
+ * Fetch daily close history for portfolio tickers + SPY benchmark.
+ * Returns { ticker: { closes: [...], dates: [...] } }
+ *
+ * @param {string[]} tickers - Portfolio holding tickers
+ * @param {string}   period  - "1M" | "3M" | "6M" | "YTD" | "1Y" | "2Y"
+ */
+export async function getPortfolioHistory(tickers, period = "1Y") {
+  if (!tickers.length) return {};
+  return apiFetch(`/portfolio_history?tickers=${tickers.join(",")}&period=${period}`);
+}
+
+/**
  * Search for ticker symbols by name or ticker prefix.
  * Calls GET /search?q=...
  *

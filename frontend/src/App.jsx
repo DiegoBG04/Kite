@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import News from "./pages/News";
 import Profile from "./pages/Profile";
+import Portfolios from "./pages/Portfolios";
 import { useTheme } from "./hooks/useTheme";
 
 const navStyle = {
@@ -55,6 +56,9 @@ export default function App() {
         <NavLink to="/" style={({ isActive }) => isActive ? activeLinkStyle : linkStyle}>
           Dashboard
         </NavLink>
+        <NavLink to="/portfolios" style={({ isActive }) => isActive ? activeLinkStyle : linkStyle}>
+          Portfolios
+        </NavLink>
         <NavLink to="/news" style={({ isActive }) => isActive ? activeLinkStyle : linkStyle}>
           News
         </NavLink>
@@ -65,9 +69,10 @@ export default function App() {
 
       <main style={{ height: "calc(100vh - 52px)", overflow: "hidden" }}>
         <Routes>
-          <Route path="/"        element={<Dashboard />} />
-          <Route path="/news"    element={<News />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/"            element={<Dashboard />} />
+          <Route path="/portfolios"  element={<Portfolios />} />
+          <Route path="/news"        element={<News />} />
+          <Route path="/profile"     element={<Profile />} />
         </Routes>
       </main>
     </BrowserRouter>

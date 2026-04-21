@@ -365,6 +365,37 @@ async def portfolio(ticker: str) -> PortfolioResponse:
 
 
 # ---------------------------------------------------------------------------
+# GET /portfolio_history
+# ---------------------------------------------------------------------------
+
+@app.get("/portfolio_history")
+async def portfolio_history(
+    tickers: str = Query(..., description="Comma-separated portfolio tickers"),
+    period:  str = Query("1Y", description="1M | 3M | 6M | YTD | 1Y | 2Y"),
+) -> dict:
+    """
+    Fetch daily close history for portfolio tickers + SPY benchmark in one call.
+    Returns { ticker: { closes: [...], dates: [...] } } for all tickers + SPY.
+    Cached server-side for 1 hour.
+    """
+    PERIOD_SIZE = {"1M": 22, "3M": 65, "6M": 130, "YTD": 105, "1Y": 252, "2Y": 504}
+    ticker_list  = [t.strip().upper() for t in tickers.split(",") if t.strip()]
+    if not ticker_list:
+        raise HTTPException(status_code=400, detail="tickers is required")
+
+    outputsize   = PERIOD_SIZE.get(period.upper(), 252)
+    # Deduplicate, always include SPY as benchmark
+    all_tickers  = list(dict.fromkeys(ticker_list + ["SPY"]))
+
+    try:
+        from backend.ingestion.market import get_batch_time_series
+        return get_batch_time_series(all_tickers, interval="1day", outputsize=outputsize)
+    except Exception as exc:
+        logger.warning(f"[PORTFOLIO_HISTORY] Failed: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
 # GET /financials/{ticker}
 # ---------------------------------------------------------------------------
 

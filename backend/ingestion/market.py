@@ -42,22 +42,23 @@ _RL_MAX   = 7      # max calls per window
 _RL_WIN   = 61.0   # window in seconds (slightly over 60 to be safe)
 
 
-def _api_call(fn):
-    """Wrap an API call with the global rate limiter. Blocks if at the limit."""
+def _api_call(fn, credits: int = 1):
+    """Wrap an API call with the global rate limiter. credits = TwelveData API credits consumed."""
     with _rl_lock:
         now = time.time()
         while _rl_times and _rl_times[0] < now - _RL_WIN:
             _rl_times.popleft()
-        if len(_rl_times) >= _RL_MAX:
+        if len(_rl_times) + credits > _RL_MAX:
             wait = (_rl_times[0] + _RL_WIN) - now
             if wait > 0:
                 logger.info(f"[RATE] API limit reached — waiting {wait:.1f}s")
                 time.sleep(wait)
-            # Re-prune after sleeping
             now = time.time()
             while _rl_times and _rl_times[0] < now - _RL_WIN:
                 _rl_times.popleft()
-        _rl_times.append(time.time())
+        t = time.time()
+        for _ in range(credits):
+            _rl_times.append(t)
     return fn()
 
 
@@ -92,6 +93,9 @@ _PERIOD_SLICE = {
 
 _quote_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
 QUOTE_CACHE_TTL = 60  # 1 minute — refreshed often for live prices
+
+_ts_batch_cache: dict[str, dict] = {}  # cache_key → {"data": ..., "expires": float}
+TS_BATCH_CACHE_TTL = 3600  # 1 hour — daily historical data changes slowly
 
 
 def _parse_quote_payload(ticker: str, data: dict) -> dict:
@@ -133,6 +137,68 @@ def _parse_quote_payload(ticker: str, data: dict) -> dict:
         "eps":          _safe("eps"),
         "beta":         _safe("beta"),
     }
+
+
+def get_batch_time_series(
+    tickers: list[str],
+    interval: str = "1day",
+    outputsize: int = 252,
+) -> dict[str, dict]:
+    """
+    Fetch historical daily closes for multiple tickers in ONE API call.
+    TwelveData /time_series accepts comma-separated symbols — each symbol
+    counts as one API credit, so a batch of 6 tickers = 6 credits.
+
+    Returns:
+        { ticker: { "closes": [float, ...], "dates": ["YYYY-MM-DD", ...] } }
+        Lists are chronological (oldest → newest). Missing tickers → empty lists.
+    """
+    api_key = os.getenv("TWELVE_DATA_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("TWELVE_DATA_API_KEY not set")
+
+    tickers = [t.upper() for t in tickers]
+    cache_key = f"{','.join(sorted(tickers))}|{interval}|{outputsize}"
+
+    cached = _ts_batch_cache.get(cache_key)
+    if cached and cached["expires"] > time.time():
+        logger.info(f"[BATCH_TS] Cache hit for {cache_key}")
+        return cached["data"]
+
+    logger.info(f"[BATCH_TS] Fetching {interval} series for: {', '.join(tickers)}")
+
+    def _fetch():
+        resp = requests.get(f"{TWELVE_BASE}/time_series", params={
+            "symbol":     ",".join(tickers),
+            "interval":   interval,
+            "outputsize": outputsize,
+            "apikey":     api_key,
+        }, timeout=20)
+        resp.raise_for_status()
+        return resp.json()
+
+    # Each symbol in the batch consumes 1 API credit against the rate limit
+    raw = _api_call(_fetch, credits=len(tickers))
+
+    # Single-ticker response comes unwrapped; multi-ticker is keyed by symbol
+    if len(tickers) == 1:
+        raw = {tickers[0]: raw}
+
+    result: dict[str, dict] = {}
+    for ticker in tickers:
+        payload = raw.get(ticker, {})
+        if payload.get("status") == "error":
+            logger.warning(f"[BATCH_TS] {ticker}: {payload.get('message')}")
+            result[ticker] = {"closes": [], "dates": []}
+            continue
+        values = list(reversed(payload.get("values") or []))
+        result[ticker] = {
+            "closes": [round(float(v["close"]), 2) for v in values],
+            "dates":  [v["datetime"][:10] for v in values],
+        }
+
+    _ts_batch_cache[cache_key] = {"data": result, "expires": time.time() + TS_BATCH_CACHE_TTL}
+    return result
 
 
 def get_batch_quotes(tickers: list[str]) -> list[dict]:
