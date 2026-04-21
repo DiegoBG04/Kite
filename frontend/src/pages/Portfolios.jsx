@@ -10,7 +10,7 @@ import CompanyLogo from "../components/CompanyLogo";
 import PortfolioEditModal from "../components/PortfolioEditModal";
 import CompanyDrawer from "../components/CompanyDrawer";
 
-const PIE_COLORS = ["#C4922A","#E8B84B","#8B6914","#F5D88A","#A87B20","#D4A73A","#6B4E0A","#FCC844","#9A7025","#B89030"];
+const PIE_COLORS = ["#C4922A", "#E8B84B", "#8B6914", "#F5D88A", "#A87B20", "#D4A73A", "#6B4E0A", "#FCC844", "#9A7025", "#B89030"];
 const TABS = ["Holdings", "Returns", "Updates", "Dividends", "Analysis"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -24,13 +24,13 @@ function fmtShort(v) {
   if (v == null || isNaN(v)) return "—";
   const a = Math.abs(v);
   if (a >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
-  if (a >= 1e9)  return `$${(v / 1e9).toFixed(1)}B`;
-  if (a >= 1e6)  return `$${(v / 1e6).toFixed(1)}M`;
+  if (a >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   return "$" + v.toFixed(0);
 }
 const pnlColor = (v) => v == null ? "var(--kite-muted)" : v >= 0 ? "var(--kite-positive)" : "var(--kite-negative)";
-const pnlSign  = (v) => v != null && v >= 0 ? "+" : "";
-
+const pnlSign = (v) => v != null && v >= 0 ? "+" : "";
+//dividends
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
@@ -53,11 +53,11 @@ function GaugeChart({ score = 0, label, sublabel }) {
   // Arc goes clockwise from 180° (left) through 270° (top) to 360° (right)
   // score 0→100 maps to needleAngle 180°→360°
   const needleAngle = 180 + s * 1.8;
-  const bgStart  = polarToXY(cx, cy, r, 180);
-  const bgEnd    = polarToXY(cx, cy, r, 0);   // same as 360°
+  const bgStart = polarToXY(cx, cy, r, 180);
+  const bgEnd = polarToXY(cx, cy, r, 0);   // same as 360°
   const scoreEnd = polarToXY(cx, cy, r, needleAngle);
   const needlePt = polarToXY(cx, cy, 34, needleAngle);
-  const color    = s >= 70 ? "#4CAF50" : s >= 40 ? "#C4922A" : "#E05252";
+  const color = s >= 70 ? "#4CAF50" : s >= 40 ? "#C4922A" : "#E05252";
 
   const arc = (end) =>
     `M ${bgStart.x.toFixed(1)} ${bgStart.y.toFixed(1)} A ${r} ${r} 0 0 1 ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
@@ -65,7 +65,7 @@ function GaugeChart({ score = 0, label, sublabel }) {
   return (
     <div style={{ textAlign: "center", width: 140 }}>
       <svg width="120" height="72" viewBox="0 0 120 72">
-        <path d={arc(bgEnd)}    fill="none" stroke="var(--kite-border)" strokeWidth="8" strokeLinecap="round" />
+        <path d={arc(bgEnd)} fill="none" stroke="var(--kite-border)" strokeWidth="8" strokeLinecap="round" />
         {s > 0 && (
           <path d={arc(scoreEnd)} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
         )}
@@ -85,10 +85,10 @@ function GaugeChart({ score = 0, label, sublabel }) {
 // ─── Snowflake Chart ─────────────────────────────────────────────────────────
 function SnowflakeChart({ scores }) {
   const data = [
-    { subject: "VALUE",    score: scores.value    ?? 50 },
-    { subject: "FUTURE",   score: scores.future   ?? 50 },
-    { subject: "PAST",     score: scores.past     ?? 50 },
-    { subject: "HEALTH",   score: scores.health   ?? 50 },
+    { subject: "VALUE", score: scores.value ?? 50 },
+    { subject: "FUTURE", score: scores.future ?? 50 },
+    { subject: "PAST", score: scores.past ?? 50 },
+    { subject: "HEALTH", score: scores.health ?? 50 },
     { subject: "DIVIDEND", score: scores.dividend ?? 20 },
   ];
   return (
@@ -107,15 +107,15 @@ function fmtDate(d) {
   if (!d || typeof d !== "string") return "";
   try {
     const [y, m] = d.split("-");
-    const mo = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const mo = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return `${mo[parseInt(m, 10) - 1]} '${y.slice(2)}`;
   } catch { return ""; }
 }
 
 // ─── Portfolio Header (top of Holdings tab) ───────────────────────────────────
 function PortfolioHeader({ rows, totalValue, totalDay }) {
-  const [period, setPeriod]         = useState("1Y");
-  const [histData, setHistData]     = useState(null);
+  const [period, setPeriod] = useState("1Y");
+  const [histData, setHistData] = useState(null);
   const [histLoading, setHistLoading] = useState(false);
 
   const tickers = rows.map((r) => r.ticker);
@@ -139,7 +139,7 @@ function PortfolioHeader({ rows, totalValue, totalDay }) {
     if (!validRows.length) return [];
 
     const allLens = [spyData.closes.length, ...validRows.map((r) => histData[r.ticker].closes.length)];
-    const minLen  = Math.min(...allLens);
+    const minLen = Math.min(...allLens);
     if (minLen < 2) return [];
 
     const series = [];
@@ -153,36 +153,36 @@ function PortfolioHeader({ rows, totalValue, totalDay }) {
     }
     const p0 = series[0].portVal || 1, s0 = series[0].spyClose || 1;
     return series.map((s) => ({
-      date:      s.date,
+      date: s.date,
       portfolio: parseFloat(((s.portVal / p0 - 1) * 100).toFixed(2)),
-      market:    parseFloat(((s.spyClose / s0 - 1) * 100).toFixed(2)),
+      market: parseFloat(((s.spyClose / s0 - 1) * 100).toFixed(2)),
     }));
   }, [histData, rows]);
 
   // Current period return from chart (last point)
-  const portReturn  = chartSeries.length ? chartSeries[chartSeries.length - 1].portfolio : null;
-  const mktReturn   = chartSeries.length ? chartSeries[chartSeries.length - 1].market : null;
+  const portReturn = chartSeries.length ? chartSeries[chartSeries.length - 1].portfolio : null;
+  const mktReturn = chartSeries.length ? chartSeries[chartSeries.length - 1].market : null;
 
   // Snowflake scores
   const n = rows.length;
-  const withCost   = rows.filter((r) => r.totalGain != null && r.costTotal > 0);
+  const withCost = rows.filter((r) => r.totalGain != null && r.costTotal > 0);
   const totalCostA = withCost.reduce((a, r) => a + r.costTotal, 0);
   const totalGainA = withCost.reduce((a, r) => a + r.totalGain, 0);
-  const retPct     = totalCostA > 0 ? (totalGainA / totalCostA) * 100 : null;
-  const dayPct     = totalValue > 0 ? (totalDay / totalValue) * 100 : null;
+  const retPct = totalCostA > 0 ? (totalGainA / totalCostA) * 100 : null;
+  const dayPct = totalValue > 0 ? (totalDay / totalValue) * 100 : null;
 
-  const withPE  = rows.filter((r) => r.s?.pe_ratio != null && r.mv);
-  const wPEtot  = withPE.reduce((a, r) => a + r.mv, 0);
-  const avgPE   = wPEtot > 0 ? withPE.reduce((a, r) => a + r.s.pe_ratio * r.mv, 0) / wPEtot : null;
+  const withPE = rows.filter((r) => r.s?.pe_ratio != null && r.mv);
+  const wPEtot = withPE.reduce((a, r) => a + r.mv, 0);
+  const avgPE = wPEtot > 0 ? withPE.reduce((a, r) => a + r.s.pe_ratio * r.mv, 0) / wPEtot : null;
   const withBeta = rows.filter((r) => r.s?.beta != null && r.mv);
-  const wBtot    = withBeta.reduce((a, r) => a + r.mv, 0);
-  const avgBeta  = wBtot > 0 ? withBeta.reduce((a, r) => a + r.s.beta * r.mv, 0) / wBtot : null;
+  const wBtot = withBeta.reduce((a, r) => a + r.mv, 0);
+  const avgBeta = wBtot > 0 ? withBeta.reduce((a, r) => a + r.s.beta * r.mv, 0) / wBtot : null;
 
   const scores = {
-    value:    avgPE   != null ? clamp(Math.round(100 - avgPE * 2),    5, 95) : 50,
-    future:   50,
-    past:     retPct  != null ? clamp(Math.round(50 + retPct),        5, 95) : 50,
-    health:   avgBeta != null ? clamp(Math.round(100 - avgBeta * 35), 5, 95) : 50,
+    value: avgPE != null ? clamp(Math.round(100 - avgPE * 2), 5, 95) : 50,
+    future: 50,
+    past: retPct != null ? clamp(Math.round(50 + retPct), 5, 95) : 50,
+    health: avgBeta != null ? clamp(Math.round(100 - avgBeta * 35), 5, 95) : 50,
     dividend: 20,
   };
 
@@ -318,18 +318,18 @@ function PortfolioHeader({ rows, totalValue, totalDay }) {
 function HoldingsTab({ holdings, portfolioData, onSelectStock, selectedTicker, onEdit }) {
   const rows = holdings.map((h) => {
     const s = portfolioData[h.ticker];
-    const price     = s?.price ?? null;
+    const price = s?.price ?? null;
     const changePct = s?.change_pct ?? null;
-    const mv        = price != null ? h.shares * price : null;
-    const dayGain   = mv != null && changePct != null ? mv * (changePct / 100) : null;
+    const mv = price != null ? h.shares * price : null;
+    const dayGain = mv != null && changePct != null ? mv * (changePct / 100) : null;
     const costTotal = h.costBasis ? h.shares * h.costBasis : null;
     const totalGain = mv != null && costTotal ? mv - costTotal : null;
-    const totalPct  = totalGain != null && costTotal ? (totalGain / costTotal) * 100 : null;
+    const totalPct = totalGain != null && costTotal ? (totalGain / costTotal) * 100 : null;
     return { ...h, s, price, changePct, mv, dayGain, costTotal, totalGain, totalPct };
   });
 
-  const totalValue   = rows.reduce((a, r) => a + (r.mv ?? 0), 0);
-  const totalDay     = rows.reduce((a, r) => a + (r.dayGain ?? 0), 0);
+  const totalValue = rows.reduce((a, r) => a + (r.mv ?? 0), 0);
+  const totalDay = rows.reduce((a, r) => a + (r.dayGain ?? 0), 0);
   const totalGainAll = rows.every((r) => r.totalGain != null)
     ? rows.reduce((a, r) => a + r.totalGain, 0) : null;
 
@@ -393,7 +393,7 @@ function HoldingsTab({ holdings, portfolioData, onSelectStock, selectedTicker, o
           <tbody>
             {rows.map((r) => {
               const isSelected = selectedTicker === r.ticker;
-              const portPct    = totalValue > 0 && r.mv != null ? (r.mv / totalValue) * 100 : null;
+              const portPct = totalValue > 0 && r.mv != null ? (r.mv / totalValue) * 100 : null;
               return (
                 <tr key={r.ticker}
                   onClick={() => r.s && onSelectStock(r.s)}
@@ -472,27 +472,27 @@ function HoldingsTab({ holdings, portfolioData, onSelectStock, selectedTicker, o
 // ─── Returns Tab ──────────────────────────────────────────────────────────────
 function ReturnsTab({ holdings, portfolioData }) {
   const rows = holdings.map((h) => {
-    const s         = portfolioData[h.ticker];
-    const price     = s?.price ?? null;
-    const mv        = price != null ? h.shares * price : null;
+    const s = portfolioData[h.ticker];
+    const price = s?.price ?? null;
+    const mv = price != null ? h.shares * price : null;
     const costTotal = h.costBasis ? h.shares * h.costBasis : null;
-    const gain      = mv != null && costTotal ? mv - costTotal : null;
-    const gainPct   = gain != null && costTotal ? (gain / costTotal) * 100 : null;
+    const gain = mv != null && costTotal ? mv - costTotal : null;
+    const gainPct = gain != null && costTotal ? (gain / costTotal) * 100 : null;
     return { ...h, s, mv, costTotal, gain, gainPct };
   });
 
-  const totalValue   = rows.reduce((a, r) => a + (r.mv ?? 0), 0);
-  const totalCost    = rows.reduce((a, r) => a + (r.costTotal ?? 0), 0);
-  const totalGain    = totalCost > 0 ? totalValue - totalCost : null;
-  const totalPct     = totalGain != null && totalCost > 0 ? (totalGain / totalCost) * 100 : null;
+  const totalValue = rows.reduce((a, r) => a + (r.mv ?? 0), 0);
+  const totalCost = rows.reduce((a, r) => a + (r.costTotal ?? 0), 0);
+  const totalGain = totalCost > 0 ? totalValue - totalCost : null;
+  const totalPct = totalGain != null && totalCost > 0 ? (totalGain / totalCost) * 100 : null;
 
   const sorted = rows.filter((r) => r.gainPct != null).sort((a, b) => (b.gainPct ?? 0) - (a.gainPct ?? 0));
   const maxAbs = Math.max(...sorted.map((r) => Math.abs(r.gain ?? 0)), 1);
 
   const barData = sorted.map((r) => ({
-    ticker:  r.ticker,
-    pct:     parseFloat((r.gainPct ?? 0).toFixed(2)),
-    gain:    r.gain ?? 0,
+    ticker: r.ticker,
+    pct: parseFloat((r.gainPct ?? 0).toFixed(2)),
+    gain: r.gain ?? 0,
   }));
 
   if (holdings.length === 0) {
@@ -508,9 +508,9 @@ function ReturnsTab({ holdings, portfolioData }) {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
         {[
-          { label: "Portfolio Value",  val: fmt(totalValue),    pct: null,      color: "var(--kite-heading)" },
-          { label: "Unrealized Gain",  val: totalGain != null ? `${pnlSign(totalGain)}${fmt(totalGain)}` : "—",  pct: totalPct,  color: pnlColor(totalGain) },
-          { label: "Total Return",     val: totalPct != null ? `${pnlSign(totalPct)}${totalPct.toFixed(2)}%` : "—", pct: null, color: pnlColor(totalPct) },
+          { label: "Portfolio Value", val: fmt(totalValue), pct: null, color: "var(--kite-heading)" },
+          { label: "Unrealized Gain", val: totalGain != null ? `${pnlSign(totalGain)}${fmt(totalGain)}` : "—", pct: totalPct, color: pnlColor(totalGain) },
+          { label: "Total Return", val: totalPct != null ? `${pnlSign(totalPct)}${totalPct.toFixed(2)}%` : "—", pct: null, color: pnlColor(totalPct) },
         ].map(({ label, val, pct, color }) => (
           <div key={label} style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-md)", padding: "16px 20px" }}>
             <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--kite-muted)", marginBottom: "8px" }}>{label}</div>
@@ -578,10 +578,10 @@ function ReturnsTab({ holdings, portfolioData }) {
 // ─── Updates Tab ──────────────────────────────────────────────────────────────
 const UPDATE_CATS = ["All", "Earnings", "Dividends", "Insider", "Risk", "Other"];
 const CAT_KEYWORDS = {
-  Earnings:  ["earnings", "revenue", "profit", "loss", "eps", "quarter", "guidance", "beat", "miss", "income", "sales"],
+  Earnings: ["earnings", "revenue", "profit", "loss", "eps", "quarter", "guidance", "beat", "miss", "income", "sales"],
   Dividends: ["dividend", "payout", "yield", "distribution", "ex-dividend"],
-  Insider:   ["insider", "purchase", "sold shares", "executive", "officer", "director", "form 4"],
-  Risk:      ["lawsuit", "investigation", "sec", "fraud", "risk", "downgrade", "recall", "fine", "penalty", "probe"],
+  Insider: ["insider", "purchase", "sold shares", "executive", "officer", "director", "form 4"],
+  Risk: ["lawsuit", "investigation", "sec", "fraud", "risk", "downgrade", "recall", "fine", "penalty", "probe"],
 };
 const CAT_COLOR = { Earnings: "#4CAF50", Dividends: "#C4922A", Insider: "#9C27B0", Risk: "#E05252", Other: "var(--kite-muted)", All: "var(--kite-muted)" };
 
@@ -594,7 +594,7 @@ function categorize(item) {
 }
 
 function UpdatesTab({ tickers, portfolioData }) {
-  const [news, setNews]       = useState([]);
+  const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCat, setActiveCat] = useState("All");
 
@@ -641,9 +641,9 @@ function UpdatesTab({ tickers, portfolioData }) {
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {filtered.map((item, i) => {
-            const cat    = categorize(item);
+            const cat = categorize(item);
             const ticker = item.tickers?.[0];
-            const stock  = ticker ? portfolioData[ticker] : null;
+            const stock = ticker ? portfolioData[ticker] : null;
             return (
               <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
                 style={{ display: "block", background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-md)", padding: "14px 16px", textDecoration: "none", transition: "box-shadow 0.15s" }}
@@ -694,7 +694,7 @@ function DividendsTab() {
       <div style={{ fontSize: "48px", opacity: 0.15 }}>◈</div>
       <div style={{ fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: "600", color: "var(--kite-heading)" }}>Dividend Tracker</div>
       <div style={{ fontSize: "13px", color: "var(--kite-muted)", maxWidth: "320px", textAlign: "center", lineHeight: 1.6 }}>
-        Dividend forecasting and income tracking is coming soon. We're working on integrating dividend data into the pipeline.
+        Dividend forecasting and income tracking not implemented yet. Hi Jaime
       </div>
     </div>
   );
@@ -703,7 +703,7 @@ function DividendsTab() {
 // ─── Analysis Tab ─────────────────────────────────────────────────────────────
 function AnalysisTab({ holdings, portfolioData }) {
   const rows = holdings.map((h) => {
-    const s  = portfolioData[h.ticker];
+    const s = portfolioData[h.ticker];
     const mv = s?.price != null ? h.shares * s.price : null;
     return { ...h, s, mv };
   });
@@ -716,20 +716,20 @@ function AnalysisTab({ holdings, portfolioData }) {
     .sort((a, b) => b.value - a.value);
 
   // Gauge scores
-  const withPE   = rows.filter((r) => r.s?.pe_ratio != null && r.mv);
+  const withPE = rows.filter((r) => r.s?.pe_ratio != null && r.mv);
   const wPEtotal = withPE.reduce((a, r) => a + r.mv, 0);
-  const avgPE    = wPEtotal > 0 ? withPE.reduce((a, r) => a + r.s.pe_ratio * r.mv, 0) / wPEtotal : null;
+  const avgPE = wPEtotal > 0 ? withPE.reduce((a, r) => a + r.s.pe_ratio * r.mv, 0) / wPEtotal : null;
   const valuationScore = avgPE != null ? clamp(Math.round(100 - avgPE * 2), 5, 95) : 50;
 
-  const withBeta   = rows.filter((r) => r.s?.beta != null && r.mv);
-  const wBtotal    = withBeta.reduce((a, r) => a + r.mv, 0);
-  const avgBeta    = wBtotal > 0 ? withBeta.reduce((a, r) => a + r.s.beta * r.mv, 0) / wBtotal : null;
+  const withBeta = rows.filter((r) => r.s?.beta != null && r.mv);
+  const wBtotal = withBeta.reduce((a, r) => a + r.mv, 0);
+  const avgBeta = wBtotal > 0 ? withBeta.reduce((a, r) => a + r.s.beta * r.mv, 0) / wBtotal : null;
   const stabilityScore = avgBeta != null ? clamp(Math.round(100 - avgBeta * 35), 5, 95) : 50;
 
   const withReturn = rows.filter((r) => r.mv != null && r.costBasis);
-  const totalCost  = withReturn.reduce((a, r) => a + r.shares * r.costBasis, 0);
-  const totalGain  = withReturn.reduce((a, r) => a + (r.mv - r.shares * r.costBasis), 0);
-  const retPct     = totalCost > 0 ? (totalGain / totalCost) * 100 : null;
+  const totalCost = withReturn.reduce((a, r) => a + r.shares * r.costBasis, 0);
+  const totalGain = withReturn.reduce((a, r) => a + (r.mv - r.shares * r.costBasis), 0);
+  const retPct = totalCost > 0 ? (totalGain / totalCost) * 100 : null;
   const performanceScore = retPct != null ? clamp(Math.round(50 + retPct), 5, 95) : 50;
 
   const n = donutData.length;
@@ -790,9 +790,9 @@ function AnalysisTab({ holdings, portfolioData }) {
           <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "2px" }}>Portfolio Health</div>
           <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "16px" }}>Score out of 100</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 0", justifyItems: "center" }}>
-            <GaugeChart score={valuationScore}      label="Valuation"       sublabel={avgPE != null ? `Avg P/E ${avgPE.toFixed(1)}` : "No P/E data"} />
-            <GaugeChart score={performanceScore}    label="Performance"     sublabel={retPct != null ? `${pnlSign(retPct)}${retPct.toFixed(1)}% return` : "No cost basis"} />
-            <GaugeChart score={stabilityScore}      label="Stability"       sublabel={avgBeta != null ? `β = ${avgBeta.toFixed(2)}` : "No beta data"} />
+            <GaugeChart score={valuationScore} label="Valuation" sublabel={avgPE != null ? `Avg P/E ${avgPE.toFixed(1)}` : "No P/E data"} />
+            <GaugeChart score={performanceScore} label="Performance" sublabel={retPct != null ? `${pnlSign(retPct)}${retPct.toFixed(1)}% return` : "No cost basis"} />
+            <GaugeChart score={stabilityScore} label="Stability" sublabel={avgBeta != null ? `β = ${avgBeta.toFixed(2)}` : "No beta data"} />
             <GaugeChart score={diversificationScore} label="Diversification" sublabel={`${n} holding${n !== 1 ? "s" : ""}`} />
           </div>
         </div>
@@ -813,9 +813,9 @@ function AnalysisTab({ holdings, portfolioData }) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 4px" }}>
                 {[
-                  ["Price",   `$${r.s.price?.toFixed(2) ?? "—"}`],
-                  ["P/E",     r.s.pe_ratio?.toFixed(1) ?? "—"],
-                  ["Beta",    r.s.beta?.toFixed(2) ?? "—"],
+                  ["Price", `$${r.s.price?.toFixed(2) ?? "—"}`],
+                  ["P/E", r.s.pe_ratio?.toFixed(1) ?? "—"],
+                  ["Beta", r.s.beta?.toFixed(2) ?? "—"],
                   ["Mkt Cap", fmtShort(r.s.market_cap)],
                 ].map(([k, v]) => (
                   <div key={k}>
@@ -835,18 +835,18 @@ function AnalysisTab({ holdings, portfolioData }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Portfolios() {
   const { portfolios, activePortfolio, activeId, setActiveId, createPortfolio, deletePortfolio, renamePortfolio, replaceHoldings } = usePortfolios();
-  const [activeTab, setActiveTab]           = useState("Holdings");
-  const [portfolioData, setPortfolioData]   = useState({});
-  const [drawerStock, setDrawerStock]       = useState(null);
+  const [activeTab, setActiveTab] = useState("Holdings");
+  const [portfolioData, setPortfolioData] = useState({});
+  const [drawerStock, setDrawerStock] = useState(null);
   const [selectedTicker, setSelectedTicker] = useState(null);
-  const [showEditModal, setShowEditModal]   = useState(false);
-  const [creatingNew, setCreatingNew]       = useState(false);
-  const [newName, setNewName]               = useState("");
-  const [renamingId, setRenamingId]         = useState(null);
-  const [renameVal, setRenameVal]           = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameVal, setRenameVal] = useState("");
 
   const holdings = activePortfolio?.holdings || [];
-  const tickers  = holdings.map((h) => h.ticker);
+  const tickers = holdings.map((h) => h.ticker);
 
   useEffect(() => {
     if (!tickers.length) return;
