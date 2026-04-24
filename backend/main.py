@@ -209,57 +209,107 @@ async def query(request: QueryRequest) -> QueryResponse:
 # GET /portfolio/{ticker}
 # ---------------------------------------------------------------------------
 
-# Realistic mock data for local development — used when yfinance is rate-limited.
-# Replace with real data once deployed to Railway (different IP, no rate-limiting).
+# Fallback mock data — shown when both DB cache and TwelveData API are unavailable.
+# Covers index/sector ETFs (always needed by Market page) plus common large-caps.
 _MOCK_PORTFOLIO = {
-    "AAPL": {"name": "Apple Inc.",       "price": 198.15, "change_pct": -1.23, "pe_ratio": 31.2, "revenue_change":  4.1, "market_cap": 3.05e12, "eps": 6.42,  "beta": 1.24, "open_price": 200.10, "day_high": 201.50, "day_low": 197.20, "volume": 52_300_000, "week_52_high": 237.49, "week_52_low": 164.08},
-    "MSFT": {"name": "Microsoft Corp.",  "price": 415.32, "change_pct":  0.87, "pe_ratio": 36.5, "revenue_change": 17.6, "market_cap": 3.08e12, "eps": 11.45, "beta": 0.90, "open_price": 411.80, "day_high": 416.90, "day_low": 410.30, "volume": 18_700_000, "week_52_high": 468.35, "week_52_low": 344.79},
-    "NVDA": {"name": "NVIDIA Corp.",     "price": 875.40, "change_pct":  2.14, "pe_ratio": 68.1, "revenue_change": 122.4,"market_cap": 2.15e12, "eps": 12.96, "beta": 1.68, "open_price": 857.00, "day_high": 882.30, "day_low": 854.10, "volume": 41_200_000, "week_52_high": 974.00, "week_52_low": 462.37},
-    "TSLA": {"name": "Tesla Inc.",       "price": 162.50, "change_pct": -3.45, "pe_ratio": 45.2, "revenue_change":  8.2, "market_cap": 5.18e11, "eps":  3.60, "beta": 2.31, "open_price": 168.40, "day_high": 169.10, "day_low": 161.80, "volume": 97_800_000, "week_52_high": 299.29, "week_52_low": 138.80},
-    "GOOGL": {"name": "Alphabet Inc.",   "price": 165.20, "change_pct":  1.05, "pe_ratio": 22.8, "revenue_change": 15.1, "market_cap": 2.03e12, "eps":  7.25, "beta": 1.06, "open_price": 163.50, "day_high": 166.40, "day_low": 163.00, "volume": 23_400_000, "week_52_high": 207.05, "week_52_low": 140.53},
-    "AMZN": {"name": "Amazon.com Inc.",  "price": 185.75, "change_pct":  0.62, "pe_ratio": 42.1, "revenue_change": 11.0, "market_cap": 1.94e12, "eps":  4.41, "beta": 1.15, "open_price": 184.20, "day_high": 186.90, "day_low": 183.70, "volume": 34_100_000, "week_52_high": 242.52, "week_52_low": 151.61},
+    # Index ETFs
+    "SPY":  {"name": "SPDR S&P 500 ETF",        "price": 536.00, "change_pct": -0.30, "pe_ratio": 22.1, "market_cap": None, "eps": None, "beta": 1.00, "revenue_change": None, "week_52_high": 613.23, "week_52_low": 480.57},
+    "QQQ":  {"name": "Invesco QQQ Trust",        "price": 452.00, "change_pct": -0.50, "pe_ratio": 29.5, "market_cap": None, "eps": None, "beta": 1.12, "revenue_change": None, "week_52_high": 540.81, "week_52_low": 394.05},
+    "DIA":  {"name": "SPDR Dow Jones ETF",       "price": 394.00, "change_pct": -0.20, "pe_ratio": 19.8, "market_cap": None, "eps": None, "beta": 0.94, "revenue_change": None, "week_52_high": 450.08, "week_52_low": 366.31},
+    "IWM":  {"name": "iShares Russell 2000 ETF", "price": 196.00, "change_pct": -0.80, "pe_ratio": 18.2, "market_cap": None, "eps": None, "beta": 1.21, "revenue_change": None, "week_52_high": 244.57, "week_52_low": 183.04},
+    # Sector ETFs
+    "XLK":  {"name": "Technology Select SPDR",        "price": 214.00, "change_pct": -0.60, "pe_ratio": 28.4, "market_cap": None, "eps": None, "beta": 1.18, "revenue_change": None, "week_52_high": 255.58, "week_52_low": 185.74},
+    "XLF":  {"name": "Financial Select SPDR",         "price":  47.80, "change_pct": -0.40, "pe_ratio": 15.2, "market_cap": None, "eps": None, "beta": 1.05, "revenue_change": None, "week_52_high":  51.89, "week_52_low":  38.59},
+    "XLV":  {"name": "Health Care Select SPDR",       "price": 138.00, "change_pct": -0.70, "pe_ratio": 18.9, "market_cap": None, "eps": None, "beta": 0.72, "revenue_change": None, "week_52_high": 161.62, "week_52_low": 127.51},
+    "XLE":  {"name": "Energy Select SPDR",            "price":  85.00, "change_pct":  0.50, "pe_ratio": 12.1, "market_cap": None, "eps": None, "beta": 1.35, "revenue_change": None, "week_52_high":  99.27, "week_52_low":  78.24},
+    "XLY":  {"name": "Consumer Discret. SPDR",        "price": 186.00, "change_pct": -0.90, "pe_ratio": 23.5, "market_cap": None, "eps": None, "beta": 1.25, "revenue_change": None, "week_52_high": 229.52, "week_52_low": 166.18},
+    "XLP":  {"name": "Consumer Staples SPDR",         "price":  79.00, "change_pct":  0.10, "pe_ratio": 20.3, "market_cap": None, "eps": None, "beta": 0.60, "revenue_change": None, "week_52_high":  82.43, "week_52_low":  71.56},
+    "XLI":  {"name": "Industrial Select SPDR",        "price": 118.00, "change_pct": -0.50, "pe_ratio": 20.8, "market_cap": None, "eps": None, "beta": 1.08, "revenue_change": None, "week_52_high": 142.01, "week_52_low": 108.37},
+    "XLB":  {"name": "Materials Select SPDR",         "price":  85.00, "change_pct": -0.30, "pe_ratio": 19.4, "market_cap": None, "eps": None, "beta": 1.10, "revenue_change": None, "week_52_high":  98.12, "week_52_low":  76.88},
+    "XLC":  {"name": "Communication Services SPDR",   "price":  92.00, "change_pct": -0.80, "pe_ratio": 18.6, "market_cap": None, "eps": None, "beta": 1.15, "revenue_change": None, "week_52_high": 109.72, "week_52_low":  77.54},
+    "XLU":  {"name": "Utilities Select SPDR",         "price":  74.00, "change_pct":  0.20, "pe_ratio": 19.2, "market_cap": None, "eps": None, "beta": 0.45, "revenue_change": None, "week_52_high":  82.21, "week_52_low":  60.04},
+    "XLRE": {"name": "Real Estate Select SPDR",       "price":  38.00, "change_pct": -0.20, "pe_ratio": 36.1, "market_cap": None, "eps": None, "beta": 0.85, "revenue_change": None, "week_52_high":  43.84, "week_52_low":  33.51},
+    # Large-cap equities
+    "AAPL": {"name": "Apple Inc.",        "price": 198.15, "change_pct": -1.23, "pe_ratio": 31.2, "market_cap": 3.05e12, "eps":  6.42, "beta": 1.24, "revenue_change":  4.1, "week_52_high": 237.49, "week_52_low": 164.08},
+    "MSFT": {"name": "Microsoft Corp.",   "price": 388.00, "change_pct": -0.50, "pe_ratio": 34.2, "market_cap": 2.88e12, "eps": 11.45, "beta": 0.90, "revenue_change": 17.6, "week_52_high": 468.35, "week_52_low": 344.79},
+    "NVDA": {"name": "NVIDIA Corp.",      "price": 875.40, "change_pct":  2.14, "pe_ratio": 68.1, "market_cap": 2.15e12, "eps": 12.96, "beta": 1.68, "revenue_change":122.4, "week_52_high": 974.00, "week_52_low": 462.37},
+    "GOOGL":{"name": "Alphabet Inc.",     "price": 165.20, "change_pct":  1.05, "pe_ratio": 22.8, "market_cap": 2.03e12, "eps":  7.25, "beta": 1.06, "revenue_change": 15.1, "week_52_high": 207.05, "week_52_low": 140.53},
+    "AMZN": {"name": "Amazon.com Inc.",   "price": 185.75, "change_pct":  0.62, "pe_ratio": 42.1, "market_cap": 1.94e12, "eps":  4.41, "beta": 1.15, "revenue_change": 11.0, "week_52_high": 242.52, "week_52_low": 151.61},
+    "META": {"name": "Meta Platforms",    "price": 512.00, "change_pct": -0.80, "pe_ratio": 26.4, "market_cap": 1.30e12, "eps": 19.40, "beta": 1.28, "revenue_change": 22.1, "week_52_high": 638.40, "week_52_low": 414.50},
+    "TSLA": {"name": "Tesla Inc.",        "price": 162.50, "change_pct": -3.45, "pe_ratio": 45.2, "market_cap": 5.18e11, "eps":  3.60, "beta": 2.31, "revenue_change":  8.2, "week_52_high": 299.29, "week_52_low": 138.80},
+    "JPM":  {"name": "JPMorgan Chase",    "price": 241.50, "change_pct":  0.32, "pe_ratio": 12.8, "market_cap": 6.95e11, "eps": 18.84, "beta": 1.10, "revenue_change":  9.2, "week_52_high": 280.25, "week_52_low": 182.63},
+    "V":    {"name": "Visa Inc.",         "price": 312.40, "change_pct":  0.28, "pe_ratio": 31.5, "market_cap": 6.32e11, "eps":  9.92, "beta": 0.93, "revenue_change": 10.4, "week_52_high": 365.15, "week_52_low": 252.70},
+    "UNH":  {"name": "UnitedHealth Group","price": 346.01, "change_pct":  6.96, "pe_ratio": 14.2, "market_cap": 3.19e11, "eps": 24.37, "beta": 0.55, "revenue_change":  7.8, "week_52_high": 630.73, "week_52_low": 310.50},
+    "LLY":  {"name": "Eli Lilly",         "price": 786.20, "change_pct":  0.65, "pe_ratio": 52.1, "market_cap": 7.48e11, "eps": 15.09, "beta": 0.41, "revenue_change": 32.0, "week_52_high": 972.53, "week_52_low": 681.55},
+    "XOM":  {"name": "Exxon Mobil",       "price": 108.00, "change_pct":  0.80, "pe_ratio": 13.5, "market_cap": 4.64e11, "eps":  8.00, "beta": 1.19, "revenue_change":  2.1, "week_52_high": 126.34, "week_52_low":  95.77},
+    "GS":   {"name": "Goldman Sachs",     "price": 512.30, "change_pct": -0.75, "pe_ratio": 13.2, "market_cap": 1.68e11, "eps": 38.81, "beta": 1.30, "revenue_change": 16.4, "week_52_high": 672.19, "week_52_low": 415.52},
+    "BA":   {"name": "Boeing",            "price": 178.30, "change_pct": -2.14, "pe_ratio": None, "market_cap": 1.36e11, "eps": -5.74, "beta": 1.50, "revenue_change": -1.2, "week_52_high": 222.85, "week_52_low": 137.11},
+    "WMT":  {"name": "Walmart",           "price":  92.00, "change_pct":  0.55, "pe_ratio": 36.8, "market_cap": 7.42e11, "eps":  2.50, "beta": 0.50, "revenue_change":  5.1, "week_52_high":  97.81, "week_52_low":  59.44},
 }
-
-def _mock_prices(base_price: float, change_pct: float, points: int, volatility: float = 0.008) -> list[float]:
-    """Generate a plausible price series ending at base_price with the given trend."""
-    import random
-    random.seed(int(base_price * 100))
-    trend = change_pct / points
-    # Start further back so the series ends near base_price
-    price = base_price / (1 + change_pct / 100)
-    prices = []
-    for _ in range(points):
-        price *= (1 + trend / 100 + random.uniform(-volatility, volatility))
-        prices.append(round(price, 2))
-    return prices
 
 @app.get("/quotes", response_model=list[PortfolioResponse])
 async def batch_quotes(tickers: str = Query(..., description="Comma-separated tickers")) -> list[PortfolioResponse]:
     """
-    Batch quote — fetches all tickers in a single TwelveData API call.
-    Used by the dashboard for fast initial load.
+    Batch quote endpoint — DB-first strategy:
+      1. Read fresh rows from market_quotes (Supabase) — zero TwelveData credits.
+      2. For any tickers not in DB (or stale), fetch from TwelveData and write back.
+      3. Fall back to mock data if both layers fail (local dev / API limit).
+
+    The scheduler keeps market_quotes warm every 15 min during market hours,
+    so step 2 is only triggered for obscure tickers not in the universe.
     """
     ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
     if not ticker_list:
         return []
-    try:
-        from backend.ingestion.market import get_batch_quotes
-        data = get_batch_quotes(ticker_list)
-        return [PortfolioResponse(**d) for d in data]
-    except Exception as exc:
-        logger.warning(f"[QUOTES] Batch fetch failed ({exc}) — falling back to mock data")
 
-    return [
-        PortfolioResponse(
-            ticker=t,
-            name=_MOCK_PORTFOLIO.get(t, {}).get("name", t),
-            price=_MOCK_PORTFOLIO.get(t, {}).get("price", 0.0),
-            change_pct=_MOCK_PORTFOLIO.get(t, {}).get("change_pct", 0.0),
-            sparkline_data=[], chart_data={},
-            yahoo_url=f"https://finance.yahoo.com/quote/{t}",
-        )
-        for t in ticker_list
-    ]
+    combined: dict[str, dict] = {}
+
+    # ── Layer 1: DB cache ──────────────────────────────────────────────────────
+    try:
+        from backend.pipeline.quote_store import get_quotes_from_db, upsert_quotes
+        combined = get_quotes_from_db(ticker_list)
+        logger.info(f"[QUOTES] DB hit: {len(combined)}/{len(ticker_list)} tickers")
+    except Exception as exc:
+        logger.warning(f"[QUOTES] DB read failed ({exc}) — going straight to API")
+
+    # ── Layer 2: Live API for misses ───────────────────────────────────────────
+    missing = [t for t in ticker_list if t not in combined]
+    if missing:
+        try:
+            from backend.ingestion.market import get_batch_quotes
+            fresh = get_batch_quotes(missing)
+            for d in fresh:
+                combined[d["ticker"]] = d
+            if fresh:
+                try:
+                    upsert_quotes(fresh)
+                except Exception as exc:
+                    logger.warning(f"[QUOTES] DB write-back failed (non-fatal): {exc}")
+            logger.info(f"[QUOTES] API fetched: {len(fresh)} tickers")
+        except Exception as exc:
+            logger.warning(f"[QUOTES] API fetch failed: {exc}")
+
+    # ── Layer 3: Mock fallback for anything still missing ──────────────────────
+    for t in ticker_list:
+        if t not in combined and t in _MOCK_PORTFOLIO:
+            combined[t] = {
+                "ticker": t, "sparkline_data": [], "chart_data": {},
+                "yahoo_url": f"https://finance.yahoo.com/quote/{t}",
+                **_MOCK_PORTFOLIO[t],
+            }
+
+    # ── Layer 4: Minimal stub so the frontend can always open a drawer ──────────
+    # Unknown tickers not in DB / API / mock still get a shell entry.
+    # price=0 signals "no data" — the frontend renders "—" for zero prices.
+    for t in ticker_list:
+        if t not in combined:
+            combined[t] = {
+                "ticker": t, "name": t, "price": 0.0, "change_pct": 0.0,
+                "sparkline_data": [], "chart_data": {},
+                "yahoo_url": f"https://finance.yahoo.com/quote/{t}",
+            }
+
+    return [PortfolioResponse(**combined[t]) for t in ticker_list if t in combined]
 
 
 @app.get("/quote/{ticker}", response_model=PortfolioResponse)
@@ -325,28 +375,13 @@ async def portfolio(ticker: str) -> PortfolioResponse:
         # Unknown ticker — generate plausible placeholder
         mock = {"name": ticker, "price": 100.00, "change_pct": 0.0, "pe_ratio": None, "revenue_change": None}
 
-    sparkline = _mock_prices(mock["price"], mock["change_pct"], 30)
-    chart_data = {
-        "1D":  _mock_prices(mock["price"], mock["change_pct"] / 5,  78,  volatility=0.002),
-        "1W":  _mock_prices(mock["price"], mock["change_pct"],       35,  volatility=0.005),
-        "1M":  _mock_prices(mock["price"], mock["change_pct"],       30,  volatility=0.008),
-        "3M":  _mock_prices(mock["price"], mock["change_pct"] * 2,  90,  volatility=0.010),
-        "6M":  _mock_prices(mock["price"], mock["change_pct"] * 4,  180, volatility=0.012),
-        "YTD": _mock_prices(mock["price"], mock["change_pct"] * 3,  105, volatility=0.010),
-        "1Y":  _mock_prices(mock["price"], mock["change_pct"] * 8,  52,  volatility=0.015),
-        "2Y":  _mock_prices(mock["price"], mock["change_pct"] * 14, 104, volatility=0.018),
-        "5Y":  _mock_prices(mock["price"], mock["change_pct"] * 30, 60,  volatility=0.022),
-        "10Y": _mock_prices(mock["price"], mock["change_pct"] * 55, 120, volatility=0.025),
-        "MAX": _mock_prices(mock["price"], mock["change_pct"] * 60, 240, volatility=0.025),
-    }
-
     return PortfolioResponse(
         ticker=ticker,
         name=mock["name"],
         price=mock["price"],
         change_pct=mock["change_pct"],
-        sparkline_data=sparkline,
-        chart_data=chart_data,
+        sparkline_data=[],
+        chart_data={},
         pe_ratio=mock.get("pe_ratio"),
         market_cap=mock.get("market_cap"),
         revenue_change=mock.get("revenue_change"),

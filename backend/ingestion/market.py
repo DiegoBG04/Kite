@@ -43,22 +43,29 @@ _RL_WIN   = 61.0   # window in seconds (slightly over 60 to be safe)
 
 
 def _api_call(fn, credits: int = 1):
-    """Wrap an API call with the global rate limiter. credits = TwelveData API credits consumed."""
-    with _rl_lock:
-        now = time.time()
-        while _rl_times and _rl_times[0] < now - _RL_WIN:
-            _rl_times.popleft()
-        if len(_rl_times) + credits > _RL_MAX:
-            wait = (_rl_times[0] + _RL_WIN) - now
-            if wait > 0:
-                logger.info(f"[RATE] API limit reached — waiting {wait:.1f}s")
-                time.sleep(wait)
+    """Wrap an API call with the global rate limiter. credits = TwelveData API credits consumed.
+
+    The sleep happens OUTSIDE the lock so concurrent threads wait in parallel
+    rather than sequentially (which would multiply the delay by the thread count).
+
+    If credits > _RL_MAX (e.g. a large batch) we clamp to _RL_MAX for accounting
+    purposes — the call still goes through after the window clears.
+    """
+    effective = min(credits, _RL_MAX)
+    while True:
+        with _rl_lock:
             now = time.time()
             while _rl_times and _rl_times[0] < now - _RL_WIN:
                 _rl_times.popleft()
-        t = time.time()
-        for _ in range(credits):
-            _rl_times.append(t)
+            if len(_rl_times) + effective <= _RL_MAX:
+                t = time.time()
+                for _ in range(effective):
+                    _rl_times.append(t)
+                break
+            wait = (_rl_times[0] + _RL_WIN) - now if _rl_times else 0
+        if wait > 0:
+            logger.info(f"[RATE] API limit reached — waiting {wait:.1f}s")
+            time.sleep(wait)
     return fn()
 
 
@@ -92,7 +99,7 @@ _PERIOD_SLICE = {
 
 
 _quote_cache: dict[str, dict] = {}  # ticker → {"data": ..., "expires": float}
-QUOTE_CACHE_TTL = 60  # 1 minute — refreshed often for live prices
+QUOTE_CACHE_TTL = 900  # 15 minutes — matches TwelveData free-tier delay
 
 _ts_batch_cache: dict[str, dict] = {}  # cache_key → {"data": ..., "expires": float}
 TS_BATCH_CACHE_TTL = 3600  # 1 hour — daily historical data changes slowly
@@ -165,37 +172,71 @@ def get_batch_time_series(
         logger.info(f"[BATCH_TS] Cache hit for {cache_key}")
         return cached["data"]
 
-    logger.info(f"[BATCH_TS] Fetching {interval} series for: {', '.join(tickers)}")
-
-    def _fetch():
-        resp = requests.get(f"{TWELVE_BASE}/time_series", params={
-            "symbol":     ",".join(tickers),
-            "interval":   interval,
-            "outputsize": outputsize,
-            "apikey":     api_key,
-        }, timeout=20)
-        resp.raise_for_status()
-        return resp.json()
-
-    # Each symbol in the batch consumes 1 API credit against the rate limit
-    raw = _api_call(_fetch, credits=len(tickers))
-
-    # Single-ticker response comes unwrapped; multi-ticker is keyed by symbol
-    if len(tickers) == 1:
-        raw = {tickers[0]: raw}
-
+    # ── Layer 1: DB cache (per-ticker, 6-hour TTL) ────────────────────────────
     result: dict[str, dict] = {}
-    for ticker in tickers:
-        payload = raw.get(ticker, {})
-        if payload.get("status") == "error":
-            logger.warning(f"[BATCH_TS] {ticker}: {payload.get('message')}")
-            result[ticker] = {"closes": [], "dates": []}
-            continue
-        values = list(reversed(payload.get("values") or []))
-        result[ticker] = {
-            "closes": [round(float(v["close"]), 2) for v in values],
-            "dates":  [v["datetime"][:10] for v in values],
-        }
+    try:
+        from backend.pipeline.ts_store import get_ts_from_db, upsert_ts
+        result = get_ts_from_db(tickers, interval, outputsize)
+        _ts_db_available = True
+    except Exception:
+        _ts_db_available = False
+
+    missing = [t for t in tickers if t not in result]
+    if not missing:
+        logger.info(f"[BATCH_TS] All {len(tickers)} tickers served from DB cache")
+        _ts_batch_cache[cache_key] = {"data": result, "expires": time.time() + TS_BATCH_CACHE_TTL}
+        return result
+
+    logger.info(f"[BATCH_TS] Fetching {len(missing)} misses from TwelveData ({interval}): {', '.join(missing)}")
+
+    # ── Layer 2: TwelveData (chunked to stay under 8 credits/min) ─────────────
+    # TwelveData charges 1 credit per symbol; limit is 8/min.
+    CHUNK = _RL_MAX  # 7 tickers per request
+
+    fresh: dict[str, dict] = {}
+    for i in range(0, len(missing), CHUNK):
+        chunk = missing[i:i + CHUNK]
+
+        def _fetch(syms=chunk):
+            resp = requests.get(f"{TWELVE_BASE}/time_series", params={
+                "symbol":     ",".join(syms),
+                "interval":   interval,
+                "outputsize": outputsize,
+                "apikey":     api_key,
+            }, timeout=20)
+            resp.raise_for_status()
+            return resp.json()
+
+        raw = _api_call(_fetch, credits=len(chunk))
+
+        # Top-level error (e.g. daily limit exceeded) — raise immediately
+        if isinstance(raw, dict) and raw.get("status") == "error":
+            raise ValueError(f"TwelveData error: {raw.get('message', 'unknown error')}")
+
+        # Single-ticker response comes unwrapped; multi-ticker is keyed by symbol
+        if len(chunk) == 1:
+            raw = {chunk[0]: raw}
+
+        for ticker in chunk:
+            payload = raw.get(ticker, {})
+            if payload.get("status") == "error":
+                logger.warning(f"[BATCH_TS] {ticker}: {payload.get('message')}")
+                fresh[ticker] = {"closes": [], "dates": []}
+                continue
+            values = list(reversed(payload.get("values") or []))
+            fresh[ticker] = {
+                "closes": [round(float(v["close"]), 2) for v in values],
+                "dates":  [v["datetime"][:10] for v in values],
+            }
+
+    # Write fresh data to DB so next request is instant
+    if fresh and _ts_db_available:
+        try:
+            upsert_ts(fresh, interval, outputsize)
+        except Exception as exc:
+            logger.warning(f"[BATCH_TS] DB write-back failed (non-fatal): {exc}")
+
+    result.update(fresh)
 
     _ts_batch_cache[cache_key] = {"data": result, "expires": time.time() + TS_BATCH_CACHE_TTL}
     return result
@@ -232,6 +273,11 @@ def get_batch_quotes(tickers: list[str]) -> list[dict]:
         return resp.json()
 
     raw = _api_call(_fetch)
+
+    # Top-level error (e.g. daily limit exceeded)
+    if isinstance(raw, dict) and raw.get("status") == "error":
+        logger.warning(f"[BATCH_QUOTE] API error: {raw.get('message')}")
+        return list(cached_results)  # return whatever we have cached
 
     # Single ticker → dict directly; multiple → dict keyed by ticker
     if len(missing) == 1:
@@ -337,13 +383,37 @@ def get_portfolio_data(ticker: str) -> dict:
     price, change_pct, name, market_cap, pe_ratio, open_price, day_high, day_low, volume, week_52_high, week_52_low, eps, beta = \
         _api_call(lambda: _get_quote(ticker, api_key))
 
-    # --- Fetch 5 raw series instead of 11 separate ones ---
-    # Each raw interval feeds multiple user-facing periods (sliced on the right).
+    # --- Fetch 5 raw series — DB-first, TwelveData only for misses ---
     raw: dict[str, list[float]] = {}
-    for interval, outputsize in _RAW_FETCH.items():
-        raw[interval] = _api_call(
+    ts_to_fetch: list[tuple[str, int]] = []
+
+    try:
+        from backend.pipeline.ts_store import get_ts_from_db, upsert_ts
+        for interval, outputsize in _RAW_FETCH.items():
+            hit = get_ts_from_db([ticker], interval, outputsize)
+            if ticker in hit:
+                raw[interval] = hit[ticker]["closes"]
+            else:
+                ts_to_fetch.append((interval, outputsize))
+        _ts_db_ok = True
+    except Exception:
+        ts_to_fetch = list(_RAW_FETCH.items())
+        _ts_db_ok = False
+
+    fresh_ts: dict[str, dict] = {}
+    for interval, outputsize in ts_to_fetch:
+        closes = _api_call(
             lambda iv=interval, sz=outputsize: _get_time_series(ticker, api_key, iv, sz)
         )
+        raw[interval] = closes
+        fresh_ts[interval] = {"closes": closes, "dates": []}
+
+    if fresh_ts and _ts_db_ok:
+        try:
+            for interval, data in fresh_ts.items():
+                upsert_ts({ticker: data}, interval, _RAW_FETCH[interval])
+        except Exception as exc:
+            logger.warning(f"[MARKET] ts_store write-back failed (non-fatal): {exc}")
 
     # Build every user-facing period by slicing the appropriate raw series
     chart_data: dict[str, list[float]] = {}

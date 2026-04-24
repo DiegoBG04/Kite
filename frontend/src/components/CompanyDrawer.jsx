@@ -907,8 +907,8 @@ export default function CompanyDrawer({ stock, onClose, portfolioData = {} }) {
               </div>
 
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontSize: "22px", fontWeight: "500", color: "var(--kite-heading)", lineHeight: 1.1 }}>${stock.price?.toFixed(2)}</div>
-                <div style={{ fontSize: "13px", color: changeColor, marginTop: "2px" }}>{isPositive ? "+" : ""}{stock.change_pct?.toFixed(2)}%</div>
+                <div style={{ fontSize: "22px", fontWeight: "500", color: "var(--kite-heading)", lineHeight: 1.1 }}>{stock.price ? `$${stock.price.toFixed(2)}` : "—"}</div>
+                <div style={{ fontSize: "13px", color: changeColor, marginTop: "2px" }}>{stock.change_pct ? `${isPositive ? "+" : ""}${stock.change_pct.toFixed(2)}%` : "—"}</div>
               </div>
 
               <div style={{ display: "flex", gap: "20px", paddingLeft: "20px", borderLeft: "1px solid var(--kite-border)", flexShrink: 0 }}>

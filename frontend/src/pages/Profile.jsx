@@ -83,26 +83,26 @@ function Toggle({ checked, onChange }) {
 // ── Email Customization Screen ────────────────────────────────────────────────
 
 const EMAIL_SECTIONS = [
-  { key: "portfolio_summary",  label: "Portfolio Performance Summary", description: "Daily P&L, total value, and allocation overview" },
-  { key: "top_movers",         label: "Top Movers",                    description: "Biggest gainers and losers in your portfolio" },
-  { key: "news_highlights",    label: "News Highlights",               description: "Most relevant news for your holdings" },
-  { key: "risk_flags",         label: "Risk Flags",                    description: "Alerts from SEC filings and earnings calls" },
-  { key: "market_overview",    label: "Market Overview",               description: "S&P 500, Nasdaq, and macro indicators" },
-  { key: "ai_insights",        label: "AI Insights",                   description: "Claude-generated analysis of your portfolio" },
+  { key: "portfolio_summary", label: "Portfolio Performance Summary", description: "Daily P&L, total value, and allocation overview" },
+  { key: "top_movers", label: "Top Movers", description: "Biggest gainers and losers in your portfolio" },
+  { key: "news_highlights", label: "News Highlights", description: "Most relevant news for your holdings" },
+  { key: "risk_flags", label: "Risk Flags", description: "Alerts from SEC filings and earnings calls" },
+  { key: "market_overview", label: "Market Overview", description: "S&P 500, Nasdaq, and macro indicators" },
+  { key: "ai_insights", label: "AI Insights", description: "Claude-generated analysis of your portfolio" },
 ];
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function EmailCustomizeScreen({ onBack }) {
-  const [deliveryTime,  setDeliveryTime]  = useState("07:00");
-  const [activeDays,    setActiveDays]    = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
-  const [sections,      setSections]      = useState({
+  const [deliveryTime, setDeliveryTime] = useState("07:00");
+  const [activeDays, setActiveDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+  const [sections, setSections] = useState({
     portfolio_summary: true,
-    top_movers:        true,
-    news_highlights:   true,
-    risk_flags:        true,
-    market_overview:   false,
-    ai_insights:       true,
+    top_movers: true,
+    news_highlights: true,
+    risk_flags: true,
+    market_overview: false,
+    ai_insights: true,
   });
   const [format, setFormat] = useState("detailed");
 
@@ -347,8 +347,8 @@ export default function Profile() {
               D
             </div>
             <div>
-              <div style={{ fontSize: "15px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "2px" }}>Diego Barriga</div>
-              <div style={{ fontSize: "12px", color: "var(--kite-muted)" }}>dbarrigaguerra@gmail.com</div>
+              <div style={{ fontSize: "15px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "2px" }}>*User Name*</div>
+              <div style={{ fontSize: "12px", color: "var(--kite-muted)" }}>your-email@email.com</div>
             </div>
           </div>
           <Row label="Member since">April 2025</Row>

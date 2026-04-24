@@ -13,6 +13,39 @@ import CompanyDrawer from "../components/CompanyDrawer";
 const PIE_COLORS = ["#C4922A", "#E8B84B", "#8B6914", "#F5D88A", "#A87B20", "#D4A73A", "#6B4E0A", "#FCC844", "#9A7025", "#B89030"];
 const TABS = ["Holdings", "Returns", "Updates", "Dividends", "Analysis"];
 
+const SECTOR_MAP = {
+  AAPL:"Technology", MSFT:"Technology", NVDA:"Technology", GOOGL:"Technology", GOOG:"Technology",
+  META:"Technology", AVGO:"Technology", ORCL:"Technology", CRM:"Technology", ADBE:"Technology",
+  INTC:"Technology", AMD:"Technology", QCOM:"Technology", TXN:"Technology", TSM:"Technology",
+  AMZN:"Consumer Cyclical", TSLA:"Consumer Cyclical", HD:"Consumer Cyclical", NKE:"Consumer Cyclical",
+  MCD:"Consumer Defensive", WMT:"Consumer Defensive", COST:"Consumer Defensive",
+  PG:"Consumer Defensive", KO:"Consumer Defensive", PEP:"Consumer Defensive",
+  JPM:"Financials", BAC:"Financials", GS:"Financials", MS:"Financials",
+  V:"Financials", MA:"Financials", BRK:"Financials", AXP:"Financials",
+  JNJ:"Healthcare", PFE:"Healthcare", UNH:"Healthcare", LLY:"Healthcare",
+  ABBV:"Healthcare", MRK:"Healthcare", TMO:"Healthcare", ABT:"Healthcare",
+  XOM:"Energy", CVX:"Energy", SLB:"Energy",
+  NFLX:"Communication", DIS:"Communication", T:"Communication", VZ:"Communication",
+  BA:"Industrials", CAT:"Industrials", GE:"Industrials", HON:"Industrials",
+  AMT:"Real Estate", PLD:"Real Estate",
+  BTC:"Crypto", ETH:"Crypto",
+};
+
+const MARKET_MAP = {
+  AAPL:"North America", MSFT:"North America", NVDA:"North America", GOOGL:"North America",
+  GOOG:"North America", META:"North America", AMZN:"North America", TSLA:"North America",
+  AVGO:"North America", ORCL:"North America", CRM:"North America", ADBE:"North America",
+  INTC:"North America", AMD:"North America", QCOM:"North America", TXN:"North America",
+  JPM:"North America", BAC:"North America", GS:"North America", MS:"North America",
+  V:"North America", MA:"North America", JNJ:"North America", PFE:"North America",
+  UNH:"North America", LLY:"North America", ABBV:"North America", MRK:"North America",
+  XOM:"North America", CVX:"North America", NFLX:"North America", DIS:"North America",
+  WMT:"North America", COST:"North America", HD:"North America", MCD:"North America",
+  NKE:"North America", BA:"North America", CAT:"North America", T:"North America",
+  TSM:"Asia", BABA:"Asia", BIDU:"Asia", JD:"Asia", NIO:"Asia", PDD:"Asia",
+  SONY:"Asia", TM:"Asia", HMC:"Asia", ASML:"Europe", SAP:"Europe", NVO:"Europe",
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -41,62 +74,29 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-// ─── Gauge Chart ─────────────────────────────────────────────────────────────
-function polarToXY(cx, cy, r, deg) {
-  const rad = (deg * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-function GaugeChart({ score = 0, label, sublabel }) {
-  const cx = 60, cy = 62, r = 44;
-  const s = clamp(score, 0, 100);
-  // Arc goes clockwise from 180° (left) through 270° (top) to 360° (right)
-  // score 0→100 maps to needleAngle 180°→360°
-  const needleAngle = 180 + s * 1.8;
-  const bgStart = polarToXY(cx, cy, r, 180);
-  const bgEnd = polarToXY(cx, cy, r, 0);   // same as 360°
-  const scoreEnd = polarToXY(cx, cy, r, needleAngle);
-  const needlePt = polarToXY(cx, cy, 34, needleAngle);
-  const color = s >= 70 ? "#4CAF50" : s >= 40 ? "#C4922A" : "#E05252";
-
-  const arc = (end) =>
-    `M ${bgStart.x.toFixed(1)} ${bgStart.y.toFixed(1)} A ${r} ${r} 0 0 1 ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
-
-  return (
-    <div style={{ textAlign: "center", width: 140 }}>
-      <svg width="120" height="72" viewBox="0 0 120 72">
-        <path d={arc(bgEnd)} fill="none" stroke="var(--kite-border)" strokeWidth="8" strokeLinecap="round" />
-        {s > 0 && (
-          <path d={arc(scoreEnd)} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
-        )}
-        <line x1={cx} y1={cy} x2={needlePt.x.toFixed(1)} y2={needlePt.y.toFixed(1)}
-          stroke="var(--kite-heading)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r="3" fill="var(--kite-heading)" />
-      </svg>
-      <div style={{ fontSize: "20px", fontWeight: "700", color, fontFamily: "var(--font-display)", marginTop: "-8px" }}>
-        {Math.round(s)}
-      </div>
-      <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--kite-heading)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: "1px" }}>{label}</div>
-      {sublabel && <div style={{ fontSize: "10px", color: "var(--kite-muted)", marginTop: "2px" }}>{sublabel}</div>}
-    </div>
-  );
-}
-
 // ─── Snowflake Chart ─────────────────────────────────────────────────────────
+function snowflakeColor(avg) {
+  if (avg >= 65) return "#4CAF50";   // green — strong
+  if (avg >= 40) return "#C4922A";   // amber — moderate
+  return "#E05252";                  // red — weak
+}
+
 function SnowflakeChart({ scores }) {
   const data = [
-    { subject: "VALUE", score: scores.value ?? 50 },
-    { subject: "FUTURE", score: scores.future ?? 50 },
-    { subject: "PAST", score: scores.past ?? 50 },
-    { subject: "HEALTH", score: scores.health ?? 50 },
+    { subject: "VALUE",    score: scores.value    ?? 50 },
+    { subject: "FUTURE",   score: scores.future   ?? 50 },
+    { subject: "PAST",     score: scores.past     ?? 50 },
+    { subject: "HEALTH",   score: scores.health   ?? 50 },
     { subject: "DIVIDEND", score: scores.dividend ?? 20 },
   ];
+  const avg = data.reduce((s, d) => s + d.score, 0) / data.length;
+  const color = snowflakeColor(avg);
   return (
-    <RadarChart cx={105} cy={98} outerRadius={72} width={210} height={196} data={data}>
+    <RadarChart cx={130} cy={118} outerRadius={90} width={260} height={236} data={data}>
       <PolarGrid stroke="var(--kite-border)" gridType="circle" />
       <PolarAngleAxis dataKey="subject"
         tick={{ fontSize: 9, fill: "var(--kite-muted)", fontWeight: "700", letterSpacing: "0.05em" }} />
-      <Radar dataKey="score" stroke="#C4922A" fill="#C4922A" fillOpacity={0.35} strokeWidth={2} />
+      <Radar dataKey="score" stroke={color} fill={color} fillOpacity={0.28} strokeWidth={2} />
     </RadarChart>
   );
 }
@@ -296,7 +296,7 @@ function PortfolioHeader({ rows, totalValue, totalDay }) {
       </div>
 
       {/* Right — Snowflake */}
-      <div style={{ width: 240, padding: "18px 16px", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 292, padding: "18px 16px", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--kite-muted)", alignSelf: "flex-start", marginBottom: "4px" }}>
           Portfolio Snowflake
         </div>
@@ -702,6 +702,8 @@ function DividendsTab() {
 
 // ─── Analysis Tab ─────────────────────────────────────────────────────────────
 function AnalysisTab({ holdings, portfolioData }) {
+  const [hidden, setHidden] = useState(new Set());
+
   const rows = holdings.map((h) => {
     const s = portfolioData[h.ticker];
     const mv = s?.price != null ? h.shares * s.price : null;
@@ -710,41 +712,90 @@ function AnalysisTab({ holdings, portfolioData }) {
 
   const totalMV = rows.reduce((a, r) => a + (r.mv ?? 0), 0);
 
+  // Donut data — by market value
   const donutData = rows
     .filter((r) => r.mv != null && r.mv > 0)
     .map((r) => ({ name: r.ticker, value: parseFloat(((r.mv / totalMV) * 100).toFixed(1)) }))
     .sort((a, b) => b.value - a.value);
 
-  // Gauge scores
-  const withPE = rows.filter((r) => r.s?.pe_ratio != null && r.mv);
-  const wPEtotal = withPE.reduce((a, r) => a + r.mv, 0);
-  const avgPE = wPEtotal > 0 ? withPE.reduce((a, r) => a + r.s.pe_ratio * r.mv, 0) / wPEtotal : null;
-  const valuationScore = avgPE != null ? clamp(Math.round(100 - avgPE * 2), 5, 95) : 50;
+  // Weighted portfolio market cap (sum of each holding's share of portfolio × company MC)
+  const portMC = totalMV > 0
+    ? rows.filter((r) => r.s?.market_cap != null && r.mv)
+        .reduce((a, r) => a + (r.mv / totalMV) * r.s.market_cap, 0)
+    : null;
 
-  const withBeta = rows.filter((r) => r.s?.beta != null && r.mv);
-  const wBtotal = withBeta.reduce((a, r) => a + r.mv, 0);
-  const avgBeta = wBtotal > 0 ? withBeta.reduce((a, r) => a + r.s.beta * r.mv, 0) / wBtotal : null;
-  const stabilityScore = avgBeta != null ? clamp(Math.round(100 - avgBeta * 35), 5, 95) : 50;
+  // Build metric rows — values computed from available quote data; "—" where not yet in data model
+  const allMetrics = [
+    { key: "Market Cap",                     value: portMC != null ? fmtShort(portMC) : "—" },
+    { key: "Dividend Yield",                 value: "—" },
+    { key: "Revenue 5Y CAGR",               value: "—" },
+    { key: "Dividend Per Share 5Y CAGR",    value: "—" },
+    { key: "Operating Margin",               value: "—" },
+    { key: "Return on Invested Capital",     value: "—" },
+    { key: "Return on Assets",               value: "—" },
+    { key: "Forward EV/Sales",               value: "—" },
+    { key: "Total Enterprise Value (TEV)",   value: "—" },
+    { key: "Revenue 3Y CAGR",               value: "—" },
+    { key: "Diluted EPS Before Extra 3Y CAGR", value: "—" },
+    { key: "EBITDA Margin",                  value: "—" },
+    { key: "Net Profit Margin",              value: "—" },
+    { key: "Return on Equity",               value: "—" },
+  ];
 
-  const withReturn = rows.filter((r) => r.mv != null && r.costBasis);
-  const totalCost = withReturn.reduce((a, r) => a + r.shares * r.costBasis, 0);
-  const totalGain = withReturn.reduce((a, r) => a + (r.mv - r.shares * r.costBasis), 0);
-  const retPct = totalCost > 0 ? (totalGain / totalCost) * 100 : null;
-  const performanceScore = retPct != null ? clamp(Math.round(50 + retPct), 5, 95) : 50;
+  const visibleMetrics = allMetrics.filter((m) => !hidden.has(m.key));
 
-  const n = donutData.length;
-  const weights = donutData.map((d) => d.value / 100);
-  const HHI = weights.reduce((a, w) => a + w * w, 0);
-  const diversificationScore = n > 1 ? clamp(Math.round((1 - HHI) / (1 - 1 / n) * 100), 5, 95) : 5;
+  // Market cap tier breakdown
+  const mcTiers = [
+    { name: "Mega (>$200B)", color: "#C4922A", test: (mc) => mc >= 200e9 },
+    { name: "Large ($10–200B)", color: "#E8B84B", test: (mc) => mc >= 10e9 && mc < 200e9 },
+    { name: "Mid ($2–10B)", color: "#8B6914", test: (mc) => mc >= 2e9 && mc < 10e9 },
+    { name: "Small (<$2B)", color: "#F5D88A", test: (mc) => mc < 2e9 },
+  ];
+  const mcBreakdown = mcTiers.map((tier) => {
+    const mv = rows.filter((r) => r.s?.market_cap != null && r.mv && tier.test(r.s.market_cap))
+      .reduce((a, r) => a + r.mv, 0);
+    return { name: tier.name, value: parseFloat(((mv / (totalMV || 1)) * 100).toFixed(1)), color: tier.color };
+  }).filter((d) => d.value > 0);
 
-  const DonutTooltip = ({ active, payload }) => {
+  // P/E profile breakdown
+  const peBreakdown = [
+    { name: "High P/E (>30)", color: "#E05252", mv: rows.filter((r) => r.s?.pe_ratio > 30 && r.mv).reduce((a, r) => a + r.mv, 0) },
+    { name: "Moderate (15–30)", color: "#C4922A", mv: rows.filter((r) => r.s?.pe_ratio >= 15 && r.s?.pe_ratio <= 30 && r.mv).reduce((a, r) => a + r.mv, 0) },
+    { name: "Low P/E (<15)", color: "#4CAF50", mv: rows.filter((r) => r.s?.pe_ratio != null && r.s?.pe_ratio < 15 && r.mv).reduce((a, r) => a + r.mv, 0) },
+    { name: "No P/E data", color: "var(--kite-border)", mv: rows.filter((r) => r.s?.pe_ratio == null && r.mv).reduce((a, r) => a + r.mv, 0) },
+  ].map((d) => ({ name: d.name, value: parseFloat(((d.mv / (totalMV || 1)) * 100).toFixed(1)), color: d.color }))
+   .filter((d) => d.value > 0);
+
+  const SmallDonutTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
     return (
-      <div style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", padding: "8px 12px", fontSize: "12px" }}>
-        <div style={{ fontWeight: "600", color: "var(--kite-heading)" }}>{d.name}</div>
+      <div style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", padding: "7px 10px", fontSize: "11px" }}>
+        <div style={{ color: "var(--kite-heading)", fontWeight: "600" }}>{d.name}</div>
         <div style={{ color: "var(--kite-muted)" }}>{d.value}%</div>
       </div>
+    );
+  };
+
+  // Custom outer label for Portfolio Holdings donut
+  const RADIAN = Math.PI / 180;
+  const renderHoldingLabel = ({ cx, cy, midAngle, outerRadius, name, value, index }) => {
+    const radius = outerRadius + 30;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const lx1 = cx + (outerRadius + 6) * Math.cos(-midAngle * RADIAN);
+    const ly1 = cy + (outerRadius + 6) * Math.sin(-midAngle * RADIAN);
+    const lx2 = cx + (outerRadius + 22) * Math.cos(-midAngle * RADIAN);
+    const ly2 = cy + (outerRadius + 22) * Math.sin(-midAngle * RADIAN);
+    const anchor = x > cx ? "start" : "end";
+    const color = PIE_COLORS[index % PIE_COLORS.length];
+    return (
+      <g key={name}>
+        <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={color} strokeWidth={1} />
+        <circle cx={x} cy={y - 6} r={5} fill={color} />
+        <text x={x + (anchor === "start" ? 9 : -9)} y={y - 3} fill="var(--kite-heading)" fontSize={9.5} fontWeight="700" textAnchor={anchor}>{name}</text>
+        <text x={x + (anchor === "start" ? 9 : -9)} y={y + 9} fill="var(--kite-muted)" fontSize={9} textAnchor={anchor}>{value}%</text>
+      </g>
     );
   };
 
@@ -757,75 +808,114 @@ function AnalysisTab({ holdings, portfolioData }) {
   }
 
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
 
-        {/* Diversification donut */}
-        <div style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-md)", padding: "20px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "2px" }}>Diversification</div>
-          <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "16px" }}>By market value</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <PieChart width={170} height={170}>
-              <Pie data={donutData} cx={80} cy={80} innerRadius={48} outerRadius={76} dataKey="value" paddingAngle={2}>
+      {/* Left — Metrics table */}
+      <div style={{ flex: 1, overflowY: "auto", borderRight: "1px solid var(--kite-border)" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px", borderBottom: "1px solid var(--kite-border)", position: "sticky", top: 0, background: "var(--kite-bg)", zIndex: 2 }}>
+          <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--kite-heading)", letterSpacing: "0.02em" }}>Portfolio Metrics</div>
+          <button
+            onClick={() => {
+              const csv = visibleMetrics.map((m) => `${m.key},${m.value}`).join("\n");
+              const blob = new Blob([`Metric,Value\n${csv}`], { type: "text/csv" });
+              const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "portfolio_metrics.csv"; a.click();
+            }}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", background: "#4CAF50", border: "none", borderRadius: "var(--radius-sm)", fontSize: "12px", fontWeight: "600", color: "#fff", cursor: "pointer" }}
+          >
+            Download ↓
+          </button>
+        </div>
+
+        {/* Rows */}
+        {visibleMetrics.map((m) => (
+          <div key={m.key} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--kite-border)", padding: "0 20px", height: "44px", gap: "12px" }}>
+            <span style={{ color: "var(--kite-border)", fontSize: "14px", cursor: "grab", flexShrink: 0, userSelect: "none" }}>⠿</span>
+            <span style={{ flex: 1, fontSize: "13px", color: "var(--kite-body)" }}>{m.key}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "13px", color: "var(--kite-heading)", fontWeight: "600" }}>{m.value}</span>
+            <button
+              onClick={() => setHidden((prev) => new Set([...prev, m.key]))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--kite-muted)", fontSize: "14px", padding: "2px 4px", lineHeight: 1, borderRadius: "2px" }}
+            >✕</button>
+          </div>
+        ))}
+
+        {hidden.size > 0 && (
+          <div style={{ padding: "12px 20px" }}>
+            <button
+              onClick={() => setHidden(new Set())}
+              style={{ background: "none", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", padding: "5px 12px", fontSize: "11px", color: "var(--kite-muted)", cursor: "pointer" }}
+            >Show {hidden.size} hidden metric{hidden.size !== 1 ? "s" : ""}</button>
+          </div>
+        )}
+      </div>
+
+      {/* Right — Charts */}
+      <div style={{ width: 440, overflowY: "auto", flexShrink: 0 }}>
+
+        {/* Portfolio Holdings donut */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{ fontSize: "15px", fontWeight: "700", color: "var(--kite-heading)", marginBottom: "2px" }}>Portfolio Holdings</div>
+          <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "12px" }}>By market value</div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <PieChart width={390} height={290}>
+              <Pie
+                data={donutData} cx={195} cy={145}
+                innerRadius={62} outerRadius={105}
+                dataKey="value" paddingAngle={2}
+                label={renderHoldingLabel} labelLine={false}
+              >
                 {donutData.map((_, i) => (
                   <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<DonutTooltip />} />
+              <Tooltip content={<SmallDonutTooltip />} />
             </PieChart>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
-              {donutData.slice(0, 8).map((d, i) => (
-                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: "600", color: "var(--kite-amber-dark)", flex: 1 }}>{d.name}</div>
-                  <div style={{ fontSize: "11px", color: "var(--kite-muted)", fontFamily: "var(--font-mono)" }}>{d.value}%</div>
+          </div>
+        </div>
+
+        {/* Two smaller charts */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0", borderTop: "1px solid var(--kite-border)" }}>
+
+          {/* Market Cap Tiers */}
+          <div style={{ padding: "16px", borderRight: "1px solid var(--kite-border)" }}>
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "12px" }}>Market Cap Mix</div>
+            <PieChart width={180} height={130}>
+              <Pie data={mcBreakdown} cx={88} cy={60} innerRadius={32} outerRadius={56} dataKey="value" paddingAngle={2}>
+                {mcBreakdown.map((d, i) => <Cell key={i} fill={d.color} />)}
+              </Pie>
+              <Tooltip content={<SmallDonutTooltip />} />
+            </PieChart>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "6px" }}>
+              {mcBreakdown.map((d) => (
+                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                  <div style={{ fontSize: "10px", color: "var(--kite-muted)", flex: 1, lineHeight: 1.2 }}>{d.name}</div>
+                  <div style={{ fontSize: "10px", fontWeight: "600", color: "var(--kite-heading)", fontFamily: "var(--font-mono)" }}>{d.value}%</div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Portfolio health gauges */}
-        <div style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-md)", padding: "20px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "2px" }}>Portfolio Health</div>
-          <div style={{ fontSize: "11px", color: "var(--kite-muted)", marginBottom: "16px" }}>Score out of 100</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 0", justifyItems: "center" }}>
-            <GaugeChart score={valuationScore} label="Valuation" sublabel={avgPE != null ? `Avg P/E ${avgPE.toFixed(1)}` : "No P/E data"} />
-            <GaugeChart score={performanceScore} label="Performance" sublabel={retPct != null ? `${pnlSign(retPct)}${retPct.toFixed(1)}% return` : "No cost basis"} />
-            <GaugeChart score={stabilityScore} label="Stability" sublabel={avgBeta != null ? `β = ${avgBeta.toFixed(2)}` : "No beta data"} />
-            <GaugeChart score={diversificationScore} label="Diversification" sublabel={`${n} holding${n !== 1 ? "s" : ""}`} />
-          </div>
-        </div>
-      </div>
-
-      {/* Per-holding stats grid */}
-      <div style={{ background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-md)", padding: "20px" }}>
-        <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "16px" }}>Holdings Metrics</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "12px" }}>
-          {rows.filter((r) => r.s).map((r) => (
-            <div key={r.ticker} style={{ border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", padding: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                <CompanyLogo ticker={r.ticker} size={24} />
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: "600", color: "var(--kite-amber-dark)" }}>{r.ticker}</div>
-                  <div style={{ fontSize: "10px", color: "var(--kite-muted)", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.s.name}</div>
+          {/* P/E Profile */}
+          <div style={{ padding: "16px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--kite-heading)", marginBottom: "12px" }}>Valuation Profile</div>
+            <PieChart width={180} height={130}>
+              <Pie data={peBreakdown} cx={88} cy={60} innerRadius={32} outerRadius={56} dataKey="value" paddingAngle={2}>
+                {peBreakdown.map((d, i) => <Cell key={i} fill={d.color} />)}
+              </Pie>
+              <Tooltip content={<SmallDonutTooltip />} />
+            </PieChart>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "6px" }}>
+              {peBreakdown.map((d) => (
+                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                  <div style={{ fontSize: "10px", color: "var(--kite-muted)", flex: 1, lineHeight: 1.2 }}>{d.name}</div>
+                  <div style={{ fontSize: "10px", fontWeight: "600", color: "var(--kite-heading)", fontFamily: "var(--font-mono)" }}>{d.value}%</div>
                 </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 4px" }}>
-                {[
-                  ["Price", `$${r.s.price?.toFixed(2) ?? "—"}`],
-                  ["P/E", r.s.pe_ratio?.toFixed(1) ?? "—"],
-                  ["Beta", r.s.beta?.toFixed(2) ?? "—"],
-                  ["Mkt Cap", fmtShort(r.s.market_cap)],
-                ].map(([k, v]) => (
-                  <div key={k}>
-                    <div style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--kite-muted)" }}>{k}</div>
-                    <div style={{ fontSize: "12px", color: "var(--kite-heading)", fontFamily: "var(--font-mono)" }}>{v}</div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>
