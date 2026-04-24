@@ -16,7 +16,6 @@ import CompanyLogo from "../components/CompanyLogo";
 import WatchlistPanel from "../components/WatchlistPanel";
 import CompanyDrawer from "../components/CompanyDrawer";
 import PortfolioEditModal from "../components/PortfolioEditModal";
-import ChatWidget from "../components/ChatWidget";
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -403,8 +402,6 @@ export default function Dashboard() {
         onClose={() => setDrawerStock(null)}
         portfolioData={portfolioData}
       />
-
-      <ChatWidget tickers={holdingTickers.length ? holdingTickers : ["AAPL", "MSFT", "NVDA"]} />
 
       {showEditModal && (
         <PortfolioEditModal

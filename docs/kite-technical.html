@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kite — Technical Reference</title>
+<style>
+  :root {
+    --amber:       #F5A623;
+    --amber-dark:  #C87D0E;
+    --amber-wash:  #FEF8ED;
+    --cream:       #FAF7F2;
+    --surface:     #FFFFFF;
+    --border:      #E8E0D0;
+    --heading:     #1C1612;
+    --body:        #3D3529;
+    --muted:       #8C7D6A;
+    --green:       #2E7D52;
+    --red:         #B54040;
+    --blue:        #2563EB;
+    --code-bg:     #F3EFE8;
+    --radius:      8px;
+    --font-body:   "Georgia", "Times New Roman", serif;
+    --font-sans:   "Helvetica Neue", "Arial", sans-serif;
+    --font-mono:   "SF Mono", "Consolas", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--cream);
+    color: var(--body);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── Layout ── */
+  .page { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 28px 0 40px;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-logo svg { flex-shrink: 0; }
+  .sidebar-logo-text { font-size: 17px; font-weight: 700; color: var(--heading); letter-spacing: -0.02em; }
+  .sidebar-logo-sub  { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .sidebar-section {
+    padding: 8px 20px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .sidebar-link {
+    display: block;
+    padding: 5px 20px;
+    font-size: 13px;
+    color: var(--body);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all 0.12s;
+  }
+  .sidebar-link:hover { background: var(--amber-wash); color: var(--amber-dark); border-left-color: var(--amber); }
+
+  .content {
+    flex: 1;
+    max-width: 900px;
+    padding: 48px 56px 80px;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 32px; font-weight: 800; color: var(--heading); letter-spacing: -0.03em; margin-bottom: 6px; }
+  h2 { font-size: 22px; font-weight: 700; color: var(--heading); letter-spacing: -0.02em; margin: 52px 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 16px; font-weight: 700; color: var(--heading); margin: 28px 0 10px; }
+  h4 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 20px 0 8px; }
+
+  p  { margin-bottom: 14px; color: var(--body); }
+  ul, ol { padding-left: 22px; margin-bottom: 14px; }
+  li { margin-bottom: 5px; }
+  strong { color: var(--heading); }
+
+  a { color: var(--amber-dark); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Code ── */
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--heading);
+  }
+
+  pre {
+    background: #1E1B16;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12.5px;
+    color: #E8D9B8;
+    line-height: 1.6;
+  }
+  .kw  { color: #F5A623; }   /* keywords / decorators */
+  .st  { color: #9BCE8A; }   /* strings */
+  .cm  { color: #7A7060; font-style: italic; } /* comments */
+  .fn  { color: #7FBBF0; }   /* function names */
+  .nu  { color: #CF9FFF; }   /* numbers */
+
+  /* ── Callout boxes ── */
+  .callout {
+    display: flex;
+    gap: 12px;
+    background: var(--amber-wash);
+    border: 1px solid #E8C97A;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin: 16px 0 22px;
+    font-size: 13.5px;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-info { background: #EFF6FF; border-color: #BFDBFE; }
+  .callout-info .callout-icon::before { content: "ℹ"; }
+  .callout-warn { background: #FFFBEB; border-color: #FDE68A; }
+  .callout-warn .callout-icon::before { content: "⚠"; }
+  .callout-tip  { background: var(--amber-wash); border-color: #E8C97A; }
+  .callout-tip .callout-icon::before  { content: "✦"; color: var(--amber-dark); }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 24px; font-size: 13.5px; }
+  th { background: var(--code-bg); color: var(--heading); font-weight: 700; padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-size: 12px; letter-spacing: 0.03em; text-transform: uppercase; }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--amber-wash); }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 18px 0 24px;
+  }
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--heading);
+    text-align: center;
+    min-width: 110px;
+  }
+  .flow-step.highlight { background: var(--amber-wash); border-color: var(--amber); color: var(--amber-dark); }
+  .flow-arrow { font-size: 18px; color: var(--muted); padding: 0 6px; }
+
+  /* ── Layer cards ── */
+  .layer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 24px; }
+  .layer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .layer-card h4 { margin: 0 0 8px; color: var(--amber-dark); }
+  .layer-card p  { font-size: 13px; margin: 0; }
+
+  /* ── Tag pills ── */
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-right: 4px; }
+  .tag-get    { background: #DCFCE7; color: #166534; }
+  .tag-post   { background: #DBEAFE; color: #1D4ED8; }
+  .tag-db     { background: var(--amber-wash); color: var(--amber-dark); border: 1px solid #E8C97A; }
+  .tag-cache  { background: #F3E8FF; color: #7E22CE; border: 1px solid #DDD6FE; }
+  .tag-live   { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .tag-stub   { background: #F1F5F9; color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #1E1B16 0%, #2A2218 100%);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    margin-bottom: 40px;
+    color: #E8D9B8;
+  }
+  .hero h1 { color: #fff; margin-bottom: 4px; }
+  .hero p   { color: #A89070; margin-bottom: 0; font-size: 14px; }
+  .hero-badge {
+    display: inline-block;
+    background: var(--amber);
+    color: #1E1B16;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Endpoint block ── */
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 14px 0 8px;
+    overflow: hidden;
+  }
+  .endpoint-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .endpoint-path { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--heading); }
+  .endpoint-desc { font-size: 12.5px; color: var(--muted); }
+  .endpoint-body { padding: 12px 16px; font-size: 13px; }
+  .endpoint-body ul { margin-bottom: 0; }
+
+  /* ── Section anchor offset ── */
+  [id] { scroll-margin-top: 24px; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* Print */
+  @media print { .sidebar { display: none; } .content { max-width: 100%; padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════════════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="28" height="28" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="9" fill="#F5A623"/>
+      <polygon points="20,6 32,20 20,27 8,20" fill="#fff"/>
+      <line x1="20" y1="27" x2="20" y2="36" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      <line x1="16.5" y1="31" x2="23.5" y2="33" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="sidebar-logo-text">Kite</div>
+      <div class="sidebar-logo-sub">Technical Reference</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Overview</div>
+  <a href="#architecture"   class="sidebar-link">Architecture</a>
+  <a href="#data-flow"      class="sidebar-link">Full Data Flow</a>
+  <a href="#env"            class="sidebar-link">Environment Variables</a>
+
+  <div class="sidebar-section">Backend</div>
+  <a href="#api-endpoints"  class="sidebar-link">API Endpoints</a>
+  <a href="#rate-limiter"   class="sidebar-link">Rate Limiter</a>
+  <a href="#caching"        class="sidebar-link">Caching Layers</a>
+  <a href="#scheduler"      class="sidebar-link">Scheduler</a>
+  <a href="#rag"            class="sidebar-link">RAG Pipeline</a>
+  <a href="#ingestion"      class="sidebar-link">Ingestion Pipeline</a>
+
+  <div class="sidebar-section">Database</div>
+  <a href="#schema"         class="sidebar-link">Supabase Schema</a>
+  <a href="#connections"    class="sidebar-link">DB Connections</a>
+
+  <div class="sidebar-section">Frontend</div>
+  <a href="#frontend-flow"  class="sidebar-link">Data Flow</a>
+  <a href="#hooks"          class="sidebar-link">Custom Hooks</a>
+  <a href="#pages"          class="sidebar-link">Pages & Components</a>
+
+  <div class="sidebar-section">Deployment</div>
+  <a href="#deployment"     class="sidebar-link">Infra & Deploy</a>
+  <a href="#costs"          class="sidebar-link">API Costs</a>
+  <a href="#roadmap-tech"   class="sidebar-link">Roadmap</a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════════════════════ -->
+<main class="content">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">Internal Engineering Doc</div>
+    <h1>How Kite Works</h1>
+    <p>A complete technical reference for the data pipeline, caching architecture, API layer, RAG system, and frontend. Written for engineers joining the project or anyone who wants to understand how the gears turn.</p>
+  </div>
+
+
+  <!-- ── ARCHITECTURE OVERVIEW ───────────────────────────────────── -->
+  <h2 id="architecture">Architecture Overview</h2>
+
+  <p>Kite is a three-tier application. A <strong>React/Vite frontend</strong> talks to a <strong>Python/FastAPI backend</strong> deployed on Railway. All persistent state lives in <strong>Supabase</strong> (PostgreSQL + pgvector). There is no Redis, no message queue, and no separate worker process — the scheduler runs inside the FastAPI process using APScheduler.</p>
+
+  <div class="layer-grid">
+    <div class="layer-card">
+      <h4>Frontend</h4>
+      <p>React 18, Vite, React Router v6. Deployed to <strong>Vercel</strong>. All API calls go through <code>frontend/src/api/client.js</code> — no component calls <code>fetch()</code> directly.</p>
+    </div>
+    <div class="layer-card">
+      <h4>Backend</h4>
+      <p>FastAPI + Uvicorn on <strong>Railway</strong>. One process, async HTTP handlers, APScheduler for background jobs. No worker separation at MVP scale.</p>
+    </div>
+    <div class="layer-card">
+      <h4>Database</h4>
+      <p><strong>Supabase</strong> (hosted PostgreSQL). Used for quote cache, time series cache, SEC embeddings (pgvector), and structured financials. Two connection modes: REST client and raw psycopg2.</p>
+    </div>
+    <div class="layer-card">
+      <h4>External APIs</h4>
+      <p><strong>Twelve Data</strong> — live quotes, OHLCV time series, symbol search. <strong>EDGAR/SEC</strong> — 10-K/10-Q text and XBRL financial facts. <strong>Anthropic Claude</strong> — RAG answer generation.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon"></div>
+    <div>The frontend never touches Supabase or external APIs directly. Everything goes through the FastAPI backend. This keeps API keys server-side and allows the backend to apply rate limiting, caching, and auth logic in one place.</div>
+  </div>
+
+
+  <!-- ── FULL DATA FLOW ───────────────────────────────────────────── -->
+  <h2 id="data-flow">Full Data Flow</h2>
+
+  <h3>Quote Request (most common path)</h3>
+  <p>When a page loads and needs prices for a list of tickers:</p>
+
+  <div class="flow">
+    <div class="flow-step highlight">User opens page</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><code>getQuotes(tickers)</code><br/>client.js</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">GET /quotes<br/>FastAPI</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Layer 1<br/>Supabase DB</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Layer 2 (miss)<br/>TwelveData</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Layer 3 (miss)<br/>Mock fallback</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">JSON response</div>
+  </div>
+
+  <p>In normal operation the scheduler pre-warms the DB every 15 minutes, so <strong>Layer 1 hits for ~95% of requests</strong> — zero TwelveData credits consumed for routine loads.</p>
+
+  <h3>Chart Data Request (on CompanyDrawer open)</h3>
+  <p>When a user clicks a stock to open the CompanyDrawer, full time series are needed:</p>
+
+  <div class="flow">
+    <div class="flow-step highlight">CompanyDrawer<br/>opens for AAPL</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">GET /portfolio/AAPL</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">5 raw intervals<br/>fetched from DB</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Misses →<br/>TwelveData (chunked)</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Write-back<br/>to ts_store</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">chart_data dict<br/>sliced per period</div>
+  </div>
+
+  <p>The 5 raw series (5min, 1h, 1day, 1week, 1month) are fetched once and sliced to build all 11 chart periods (1D, 1W, 1M, 3M, 6M, YTD, 1Y, 2Y, 5Y, 10Y, MAX). After the first load the DB has all 5 series cached for 6 hours.</p>
+
+  <h3>AI Query Flow</h3>
+
+  <div class="flow">
+    <div class="flow-step highlight">User sends<br/>question</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">POST /query</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">embed_text()<br/>MiniLM model</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">pgvector<br/>similarity search</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Top-8 chunks<br/>→ Claude prompt</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">Cited answer<br/>+ SourcePills</div>
+  </div>
+
+
+  <!-- ── ENV VARS ─────────────────────────────────────────────────── -->
+  <h2 id="env">Environment Variables</h2>
+
+  <table>
+    <tr><th>Variable</th><th>Used by</th><th>Description</th></tr>
+    <tr><td><code>TWELVE_DATA_API_KEY</code></td><td>Backend</td><td>TwelveData API key. Free tier: 800 calls/day, 8/min.</td></tr>
+    <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Backend</td><td>Claude API key. Used by reasoner.py for RAG answers.</td></tr>
+    <tr><td><code>SUPABASE_URL</code></td><td>Backend</td><td>Supabase project URL (e.g. <code>https://xyz.supabase.co</code>). Used by the REST client.</td></tr>
+    <tr><td><code>SUPABASE_KEY</code></td><td>Backend</td><td>Supabase anon/service key. Used by the REST client.</td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>Backend</td><td>Direct Postgres connection string. Used by psycopg2 for pgvector and bulk writes.</td></tr>
+    <tr><td><code>VITE_API_URL</code></td><td>Frontend</td><td>Backend base URL. Dev: <code>http://localhost:8000</code>. Prod: Railway URL.</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon"></div>
+    <div><code>DATABASE_URL</code> and <code>SUPABASE_DB_URL</code> both work for psycopg2 connections — the code checks both. Get the connection string from Supabase → Settings → Database → URI mode. Include the password in the string; do not put it separately.</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       BACKEND
+  ══════════════════════════════════════════════════════════════ -->
+  <h2 id="api-endpoints">API Endpoints</h2>
+
+  <p>All routes are defined in <code>backend/main.py</code>. The FastAPI app starts with <code>uvicorn backend.main:app --reload --port 8000</code>. Interactive docs are at <code>http://localhost:8000/docs</code>.</p>
+
+  <!-- /health -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/health</span>
+      <span class="endpoint-desc">Railway uptime monitor ping</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">Returns <code>{"status":"ok"}</code>. No DB calls. Railway pings this every 30 seconds.</div>
+  </div>
+
+  <!-- /quotes -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/quotes?tickers=AAPL,MSFT,NVDA</span>
+      <span class="endpoint-desc">Batch quote (DB-first)</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Primary quote endpoint. DB → TwelveData API → mock fallback. Returns price, change %, sparkline stub, and all KPI fields. Used by every page that shows a stock row.</p>
+      <ul>
+        <li>Layer 1: reads <code>market_quotes</code> table for rows < 15 min old</li>
+        <li>Layer 2: calls TwelveData <code>/quote</code> for any miss; writes back to DB</li>
+        <li>Layer 3: returns from <code>_MOCK_PORTFOLIO</code> for common tickers if both layers fail</li>
+        <li>Layer 4: empty stub (price=0) for unknown tickers so drawer still opens</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- /portfolio/{ticker} -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/portfolio/{ticker}</span>
+      <span class="endpoint-desc">Full quote + all chart series</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Called only when a CompanyDrawer opens. Fetches the 5 raw time series (5min/1h/1day/1week/1month) from DB, falls back to TwelveData for misses, writes back, then slices into the <code>chart_data</code> dict keyed by period (1D, 1W, … MAX). Also fetches a live quote with KPIs.</p>
+      <ul>
+        <li>5 raw intervals → 11 chart periods; only 5–6 TwelveData calls on first load</li>
+        <li>Subsequent loads within 6 hours: 0 TwelveData calls (all served from <code>time_series_cache</code>)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- /portfolio_history -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/portfolio_history?tickers=AAPL,MSFT&period=1Y</span>
+      <span class="endpoint-desc">Multi-ticker daily close series</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns <code>{"AAPL": {"closes": [...], "dates": [...]}, "SPY": {...}}</code>. SPY is always appended as benchmark. Used by the Portfolios page performance chart. Backed by the same <code>time_series_cache</code> table and 1day interval.</p>
+    </div>
+  </div>
+
+  <!-- /financials -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/financials/{ticker}</span>
+      <span class="endpoint-desc">Quarterly + annual income statement</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">Returns <code>quarterly</code> and <code>annual</code> arrays with revenue, gross profit, EBITDA, net income. Pulls from Twelve Data's income_statement endpoint. Used by CompanyDrawer Financials and Trends tabs.</div>
+  </div>
+
+  <!-- /search -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/search?q=apple</span>
+      <span class="endpoint-desc">Symbol search proxy</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">Proxies TwelveData <code>/symbol_search</code>. API key stays server-side. Returns up to 8 results: symbol, name, exchange, type, country. Called by the global search bar with 250ms debounce.</div>
+  </div>
+
+  <!-- /query -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-post">POST</span>
+      <span class="endpoint-path">/query</span>
+      <span class="endpoint-desc">RAG AI answer with citations</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Body: <code>{"question": "...", "tickers": ["AAPL"]}</code>. Embeds the question → pgvector similarity search (top 8 chunks) → Claude generates cited answer. Returns <code>answer</code>, <code>sources</code>, <code>sourced</code>.</p>
+      <ul>
+        <li>If no chunks found: returns "I don't have a source for that." — Claude is never called</li>
+        <li>If chunks exist but API key missing: raises 500 with clear error message</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- /ingest -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-post">POST</span>
+      <span class="endpoint-path">/ingest</span>
+      <span class="endpoint-desc">Full SEC filing ingestion pipeline</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">Body: <code>{"tickers": ["AAPL"], "filing_types": ["10-K", "10-Q"]}</code>. Runs the full 5-stage pipeline: EDGAR download → chunking → embedding → pgvector upsert → XBRL financials. Can take minutes per ticker. Called manually or from admin UI.</div>
+  </div>
+
+  <!-- /ingest-financials -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-post">POST</span>
+      <span class="endpoint-path">/ingest-financials</span>
+      <span class="endpoint-desc">Fast financial-only ingestion (no embeddings)</span>
+      <span class="tag tag-live" style="margin-left:auto">Live</span>
+    </div>
+    <div class="endpoint-body">XBRL data only — ~5–10s per ticker. Use this to populate the Financials/Trends tabs without running the full embedding pipeline.</div>
+  </div>
+
+  <!-- /news /briefing -->
+  <div class="endpoint">
+    <div class="endpoint-head">
+      <span class="tag tag-get">GET</span>
+      <span class="endpoint-path">/news &nbsp;·&nbsp; /briefing/{date}</span>
+      <span class="endpoint-desc">News feed and daily briefing</span>
+      <span class="tag tag-stub" style="margin-left:auto">Partial</span>
+    </div>
+    <div class="endpoint-body">News uses <code>ingestion/news.py</code> which is wired up; briefing returns empty items (stub). Both endpoints exist so the frontend can be built without waiting for backend implementation.</div>
+  </div>
+
+
+  <!-- ── RATE LIMITER ──────────────────────────────────────────────── -->
+  <h2 id="rate-limiter">Rate Limiter</h2>
+
+  <p>Twelve Data's free tier allows <strong>8 API credits per minute</strong>. Each ticker in a <code>/quotes</code> batch counts as 1 credit; each ticker in a time series batch also counts as 1 credit. The rate limiter in <code>backend/ingestion/market.py</code> enforces a global cap across concurrent requests.</p>
+
+  <h3>Implementation</h3>
+  <p>A thread-safe sliding window using a deque of timestamps:</p>
+
+  <pre><code><span class="kw">_RL_MAX</span> = 7      <span class="cm"># stay 1 under the limit (8) for headroom</span>
+<span class="kw">_RL_WIN</span> = 61.0   <span class="cm"># 61s window (slightly over 60 to be safe)</span>
+
+<span class="kw">def</span> <span class="fn">_api_call</span>(fn, credits: int = 1):
+    effective = min(credits, _RL_MAX)   <span class="cm"># clamp for large batches</span>
+    <span class="kw">while</span> True:
+        <span class="kw">with</span> _rl_lock:
+            now = time.time()
+            <span class="kw">while</span> _rl_times <span class="kw">and</span> _rl_times[<span class="nu">0</span>] &lt; now - _RL_WIN:
+                _rl_times.popleft()             <span class="cm"># expire old entries</span>
+            <span class="kw">if</span> len(_rl_times) + effective &lt;= _RL_MAX:
+                t = time.time()
+                <span class="kw">for</span> _ <span class="kw">in</span> range(effective):
+                    _rl_times.append(t)         <span class="cm"># register these credits</span>
+                <span class="kw">break</span>
+            wait = (_rl_times[<span class="nu">0</span>] + _RL_WIN) - now <span class="kw">if</span> _rl_times <span class="kw">else</span> <span class="nu">0</span>
+        <span class="kw">if</span> wait > <span class="nu">0</span>:
+            time.sleep(wait)            <span class="cm"># sleep OUTSIDE lock</span>
+    <span class="kw">return</span> fn()</code></pre>
+
+  <h3>Key design decisions</h3>
+  <ul>
+    <li><strong>Sleep outside the lock</strong> — other threads can check the deque while this one waits, instead of blocking each other.</li>
+    <li><strong>Clamp <code>effective = min(credits, _RL_MAX)</code></strong> — a 21-ticker batch would try to reserve 21 credits, but since only 7 fit, we track 7. Without this, <code>len(times) + 21 &lt;= 7</code> is never true and the loop spins forever.</li>
+    <li><strong>Guard <code>if _rl_times else 0</code></strong> — if the deque is empty (no recent calls), wait is 0 and we proceed immediately.</li>
+  </ul>
+
+  <h3>Chunked batching</h3>
+  <p>For time series fetches with many tickers, <code>get_batch_time_series</code> splits the ticker list into chunks of <code>_RL_MAX</code> (7) and calls the rate limiter between each chunk:</p>
+
+  <pre><code><span class="kw">for</span> i <span class="kw">in</span> range(<span class="nu">0</span>, len(missing), _RL_MAX):
+    chunk = missing[i : i + _RL_MAX]
+    result = _api_call(
+        <span class="kw">lambda</span>: _fetch_time_series_batch(chunk, interval, outputsize),
+        credits=len(chunk),
+    )</code></pre>
+
+
+  <!-- ── CACHING ─────────────────────────────────────────────────── -->
+  <h2 id="caching">Caching Layers</h2>
+
+  <p>Kite has four caching layers, innermost to outermost:</p>
+
+  <table>
+    <tr><th>Layer</th><th>Location</th><th>TTL</th><th>What's cached</th></tr>
+    <tr>
+      <td><strong>1 — In-memory quote cache</strong></td>
+      <td><code>_quote_cache</code> dict in market.py</td>
+      <td>15 min</td>
+      <td>Single-ticker <code>/quote</code> responses. Cleared on server restart.</td>
+    </tr>
+    <tr>
+      <td><strong>2 — In-memory time series cache</strong></td>
+      <td><code>_ts_batch_cache</code> dict in market.py</td>
+      <td>1 hour</td>
+      <td>Raw time series for a (ticker, interval, outputsize) key. Cleared on restart.</td>
+    </tr>
+    <tr>
+      <td><strong>3 — DB quote cache</strong></td>
+      <td><code>market_quotes</code> table in Supabase</td>
+      <td>15 min (staleness check)</td>
+      <td>Quotes for the full MARKET_UNIVERSE (~50 tickers). Warmed every 15 min by scheduler.</td>
+    </tr>
+    <tr>
+      <td><strong>4 — DB time series cache</strong></td>
+      <td><code>time_series_cache</code> table in Supabase</td>
+      <td>6 hours</td>
+      <td>OHLCV close series for (ticker, interval, outputsize). Survives server restarts.</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-icon"></div>
+    <div>Layers 3 and 4 are the important ones for production — they survive server restarts and are shared across all server instances. Layers 1 and 2 are fast in-process shortcuts that reduce DB reads during a single server session.</div>
+  </div>
+
+  <h3>Cache miss flow (quotes)</h3>
+  <ol>
+    <li>Check <code>market_quotes</code> in Supabase → return if fresh</li>
+    <li>Call TwelveData <code>/quote</code> for missing tickers (respects rate limiter)</li>
+    <li>Write fresh rows back to <code>market_quotes</code> (upsert on ticker PK)</li>
+    <li>Fall back to <code>_MOCK_PORTFOLIO</code> if API also fails</li>
+  </ol>
+
+  <h3>Cache miss flow (time series)</h3>
+  <ol>
+    <li>Check <code>time_series_cache</code> for each of the 5 raw intervals</li>
+    <li>For any misses: call TwelveData <code>/time_series</code> in chunks of 7</li>
+    <li>Write results back to <code>time_series_cache</code> (upsert on ticker+interval+outputsize)</li>
+    <li>Slice the 5 raw series into the <code>chart_data</code> dict keyed by period label</li>
+  </ol>
+
+
+  <!-- ── SCHEDULER ─────────────────────────────────────────────────── -->
+  <h2 id="scheduler">Scheduler</h2>
+
+  <p>The scheduler runs inside the FastAPI process using <code>APScheduler (AsyncIOScheduler)</code>. It is started in the FastAPI <code>lifespan</code> context and shut down cleanly on server exit.</p>
+
+  <h3>Jobs</h3>
+
+  <table>
+    <tr><th>Job ID</th><th>Trigger</th><th>What it does</th></tr>
+    <tr>
+      <td><code>market_quote_refresh</code></td>
+      <td>Every 15 min</td>
+      <td>Fetches the latest quote for all ~50 tickers in <code>MARKET_UNIVERSE</code> + any user-ingested tickers from the <code>financials</code> table. Upserts to <code>market_quotes</code>. <strong>Skips if market is closed</strong> (saves API credits outside trading hours).</td>
+    </tr>
+    <tr>
+      <td><code>nightly_financials</code></td>
+      <td>2:00 AM UTC daily</td>
+      <td>Re-fetches EDGAR XBRL financial facts for every ticker in the <code>financials</code> table and overwrites stale rows. Keeps the Financials tab data fresh without manual re-ingestion.</td>
+    </tr>
+  </table>
+
+  <h3>Market hours detection</h3>
+  <pre><code><span class="kw">def</span> <span class="fn">_is_market_open</span>() -> bool:
+    now = datetime.now(timezone.utc)
+    <span class="kw">if</span> now.weekday() >= <span class="nu">5</span>:          <span class="cm"># Sat=5, Sun=6</span>
+        <span class="kw">return</span> False
+    h = now.hour + now.minute / <span class="nu">60</span>
+    <span class="kw">return</span> <span class="nu">13.5</span> &lt;= h &lt;= <span class="nu">21.0</span>        <span class="cm"># 9:30am–4pm ET in UTC</span></code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-icon"></div>
+    <div>The scheduler does not account for US market holidays. On bank holidays during the week it will still attempt a refresh, but TwelveData will return the previous close values — which is fine since prices haven't changed.</div>
+  </div>
+
+
+  <!-- ── RAG PIPELINE ───────────────────────────────────────────── -->
+  <h2 id="rag">RAG Pipeline (AI Assistant)</h2>
+
+  <p>The AI assistant answers questions by retrieving relevant passages from SEC filings stored in pgvector, then passing them to Claude for reasoning. This is Retrieval-Augmented Generation (RAG).</p>
+
+  <h3>Embedding model</h3>
+  <p><code>all-MiniLM-L6-v2</code> (Sentence Transformers) — a small, fast model that runs locally. Produces 384-dimensional dense vectors. The same model is used at both ingestion time (chunk embedding) and query time (question embedding), which is required for cosine similarity to be meaningful.</p>
+
+  <h3>Stage 1: Ingestion (<code>POST /ingest</code>)</h3>
+
+  <div class="flow">
+    <div class="flow-step">EDGAR API<br/>download</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">HTML → text<br/>extraction</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">~500-token<br/>chunks</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">MiniLM<br/>embeddings</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">pgvector<br/>upsert</div>
+  </div>
+
+  <ul>
+    <li><code>edgar.py</code> — downloads 10-K and 10-Q filings from SEC EDGAR, strips HTML to plain text</li>
+    <li><code>chunker.py</code> — splits text into ~500-token chunks with 50-token overlap to preserve context boundaries</li>
+    <li><code>embedder.py</code> — calls <code>all-MiniLM-L6-v2</code> via <code>sentence_transformers</code>; normalizes vectors to unit length</li>
+    <li><code>store.py</code> — upserts chunks into the <code>documents</code> pgvector table with ON CONFLICT on <code>(ticker, doc_type, fiscal_year, chunk_index)</code></li>
+  </ul>
+
+  <h3>Stage 2: Query (<code>POST /query</code>)</h3>
+
+  <ul>
+    <li><code>retriever.py</code> — embeds the question, calls <code>similarity_search()</code> in pgvector with optional ticker filter, returns top-8 chunks sorted by cosine similarity</li>
+    <li><code>reasoner.py</code> — formats chunks into a numbered context block, calls Claude, parses the cited answer into a <code>QueryResponse</code></li>
+  </ul>
+
+  <pre><code><span class="cm"># reasoner.py — prompt structure</span>
+user_message = (
+    <span class="st">"Here are the relevant source passages:\n\n"</span>
+    <span class="st">f"{context}\n\n"</span>         <span class="cm"># numbered [1]…[8] chunks</span>
+    <span class="st">f"Question: {question}"</span>
+)</code></pre>
+
+  <h3>Model selection</h3>
+  <table>
+    <tr><th>Model</th><th>Speed</th><th>Cost/query</th><th>Use case</th></tr>
+    <tr><td><code>claude-haiku-4-5</code></td><td>~1–2s</td><td>~$0.001</td><td>Current default. Good for factual lookups from chunks.</td></tr>
+    <tr><td><code>claude-sonnet-4-6</code></td><td>~3–5s</td><td>~$0.006</td><td>Recommended upgrade. Better synthesis and reasoning.</td></tr>
+    <tr><td><code>claude-opus-4-7</code></td><td>~8–12s</td><td>~$0.04</td><td>Overkill for RAG. Not recommended.</td></tr>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-icon"></div>
+    <div>Enable <strong>prompt caching</strong> on the <code>KITE_SYSTEM_PROMPT</code> (it's long and static) to cut input token costs by ~90% on repeated queries. Pass <code>cache_control: {"type": "ephemeral"}</code> on the system message block.</div>
+  </div>
+
+
+  <!-- ── INGESTION PIPELINE ─────────────────────────────────────── -->
+  <h2 id="ingestion">Ingestion Pipeline Detail</h2>
+
+  <h3>SEC EDGAR (<code>ingestion/edgar.py</code>)</h3>
+  <p>Uses the EDGAR full-text search API and the filing index to download 10-K/10-Q HTML filings. Strips HTML tags, normalizes whitespace, and preserves page structure. No EDGAR API key required (public).</p>
+
+  <h3>XBRL Financial Facts (<code>ingestion/xbrl.py</code>)</h3>
+  <p>Pulls structured financial data from <code>data.sec.gov/api/xbrl/companyfacts</code>. Extracts revenue, gross profit, EBITDA, net income, and EPS for both annual and quarterly periods. No parsing of filing text — pure structured data. Used by <code>/ingest-financials</code> and the nightly scheduler job.</p>
+
+  <h3>News (<code>ingestion/news.py</code>)</h3>
+  <p>Wired up to the <code>/news</code> endpoint. Fetches headlines filtered by ticker list and filter type (portfolio, trending, top, recent). Currently returns real data when the underlying source is available.</p>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       DATABASE
+  ══════════════════════════════════════════════════════════════ -->
+  <h2 id="schema">Supabase Schema</h2>
+
+  <p>All tables live in the default <code>public</code> schema in Supabase. Run these SQL statements in Supabase → SQL Editor to create them.</p>
+
+  <h3>documents (pgvector — SEC filing chunks)</h3>
+  <pre><code><span class="kw">CREATE EXTENSION IF NOT EXISTS</span> vector;
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> documents (
+    id            BIGSERIAL    PRIMARY KEY,
+    ticker        TEXT         NOT NULL,
+    doc_type      TEXT         NOT NULL,   <span class="cm">-- '10-K', '10-Q', etc.</span>
+    fiscal_year   TEXT,
+    source_label  TEXT,
+    source_url    TEXT,
+    page_number   INTEGER,
+    chunk_index   INTEGER      NOT NULL,
+    content       TEXT         NOT NULL,
+    embedding     vector(<span class="nu">384</span>),            <span class="cm">-- MiniLM-L6-v2 output dimension</span>
+    metadata      JSONB        DEFAULT <span class="st">'{}'</span>,
+    created_at    TIMESTAMPTZ  DEFAULT NOW(),
+    UNIQUE (ticker, doc_type, fiscal_year, chunk_index)
+);
+
+<span class="cm">-- Index for fast cosine similarity search</span>
+<span class="kw">CREATE INDEX</span> documents_embedding_idx
+    ON documents USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = <span class="nu">100</span>);</code></pre>
+
+  <h3>market_quotes (quote cache)</h3>
+  <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> market_quotes (
+    ticker        TEXT         PRIMARY KEY,
+    name          TEXT,
+    price         FLOAT,
+    change_pct    FLOAT,
+    pe_ratio      FLOAT,
+    market_cap    FLOAT,
+    eps           FLOAT,
+    beta          FLOAT,
+    week_52_high  FLOAT,
+    week_52_low   FLOAT,
+    volume        BIGINT,
+    fetched_at    TIMESTAMPTZ  DEFAULT NOW()
+);</code></pre>
+
+  <h3>time_series_cache (chart data)</h3>
+  <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> time_series_cache (
+    ticker        TEXT         NOT NULL,
+    interval      TEXT         NOT NULL,   <span class="cm">-- '5min', '1h', '1day', '1week', '1month'</span>
+    outputsize    INTEGER      NOT NULL,   <span class="cm">-- number of bars requested</span>
+    data          JSONB        NOT NULL DEFAULT <span class="st">'{}'</span>,
+    fetched_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (ticker, interval, outputsize)
+);</code></pre>
+
+  <h3>financials (XBRL structured data)</h3>
+  <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> financials (
+    id            BIGSERIAL    PRIMARY KEY,
+    ticker        TEXT         NOT NULL,
+    period_type   TEXT         NOT NULL,   <span class="cm">-- 'annual' | 'quarterly'</span>
+    fiscal_year   TEXT,
+    fiscal_quarter TEXT,
+    revenue       FLOAT,
+    gross_profit  FLOAT,
+    ebitda        FLOAT,
+    net_income    FLOAT,
+    eps           FLOAT,
+    created_at    TIMESTAMPTZ  DEFAULT NOW(),
+    UNIQUE (ticker, period_type, fiscal_year, fiscal_quarter)
+);</code></pre>
+
+  <h3>Data freshness summary</h3>
+  <table>
+    <tr><th>Table</th><th>Updated by</th><th>Freshness</th></tr>
+    <tr><td><code>market_quotes</code></td><td>Scheduler every 15 min + API miss write-back</td><td>≤15 min during market hours</td></tr>
+    <tr><td><code>time_series_cache</code></td><td>API miss write-back (on first CompanyDrawer open)</td><td>≤6 hours</td></tr>
+    <tr><td><code>financials</code></td><td>Nightly scheduler at 2 AM UTC + manual /ingest</td><td>≤24 hours</td></tr>
+    <tr><td><code>documents</code></td><td>Manual /ingest only</td><td>On-demand (SEC filings rarely change)</td></tr>
+  </table>
+
+
+  <!-- ── DB CONNECTIONS ─────────────────────────────────────────── -->
+  <h2 id="connections">DB Connections</h2>
+
+  <p>Two connection modes are used for different purposes:</p>
+
+  <table>
+    <tr><th>Mode</th><th>Module</th><th>When used</th></tr>
+    <tr>
+      <td><strong>Supabase REST client</strong><br/><code>get_supabase_client()</code></td>
+      <td><code>backend/db.py</code></td>
+      <td>General queries via Supabase's auto-generated REST API. Requires <code>SUPABASE_URL</code> + <code>SUPABASE_KEY</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>psycopg2 direct</strong><br/><code>get_pg_conn()</code></td>
+      <td><code>backend/db.py</code></td>
+      <td>pgvector operations (embedding upsert, cosine similarity search), bulk writes for cache tables. Requires <code>DATABASE_URL</code>. The REST client does not support the <code>vector</code> data type.</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon"></div>
+    <div>psycopg2 connections are opened per-request and closed immediately (context manager). Supabase free tier allows ~20 concurrent connections. Do not hold connections open across async boundaries — this will exhaust the pool under load. Connection pooling (PgBouncer) is a roadmap item.</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FRONTEND
+  ══════════════════════════════════════════════════════════════ -->
+  <h2 id="frontend-flow">Frontend Data Flow</h2>
+
+  <p>The frontend follows a strict pattern: <strong>components never call the API directly</strong>. All network calls go through <code>frontend/src/api/client.js</code>, which exports named async functions. Components either call these directly or use them through custom hooks.</p>
+
+  <div class="flow">
+    <div class="flow-step highlight">Component<br/>mounts</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Custom hook<br/>(useHoldings etc.)</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">api/client.js<br/>function</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">FastAPI<br/>backend</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight">State update<br/>→ re-render</div>
+  </div>
+
+  <h3>Global state</h3>
+  <p>Two pieces of global state are held in <code>App.jsx</code>'s <code>Layout</code> component so they persist across page navigation:</p>
+  <ul>
+    <li><code>drawerStock</code> — the stock currently displayed in <code>CompanyDrawer</code>. Set by search results, assistant action chips, or any StockRow click.</li>
+    <li><code>assistantOpen</code> — whether the <code>AssistantPanel</code> is visible. Toggled by the "Ask Kite" button in the nav.</li>
+  </ul>
+  <p>Both are lifted to <code>Layout</code> so the drawer and panel persist when the user navigates between pages (e.g. opens a company from the News page and navigates to Portfolios without losing the drawer).</p>
+
+
+  <!-- ── HOOKS ─────────────────────────────────────────────────── -->
+  <h2 id="hooks">Custom Hooks</h2>
+
+  <table>
+    <tr><th>Hook</th><th>File</th><th>What it does</th></tr>
+    <tr>
+      <td><code>useHoldings()</code></td>
+      <td><code>hooks/useHoldings.js</code></td>
+      <td>Reads the user's portfolio holdings from localStorage. Returns <code>{holdings, addHolding, removeHolding}</code>. Holdings are <code>[{ticker, shares, avgCost}]</code>. No API calls — pure local state.</td>
+    </tr>
+    <tr>
+      <td><code>useWatchlist()</code></td>
+      <td><code>hooks/useWatchlist.js</code></td>
+      <td>Reads/writes the watchlist from localStorage. Returns <code>{watchlist, addToWatchlist, removeFromWatchlist}</code>.</td>
+    </tr>
+    <tr>
+      <td><code>usePortfolios()</code></td>
+      <td><code>hooks/usePortfolios.js</code></td>
+      <td>Manages multiple named portfolios in localStorage. Returns the active portfolio and CRUD operations.</td>
+    </tr>
+    <tr>
+      <td><code>useTheme()</code></td>
+      <td><code>hooks/useTheme.js</code></td>
+      <td>Reads the user's theme preference (light/dark) from localStorage and applies CSS variables to <code>:root</code>.</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-icon"></div>
+    <div>All user data (holdings, watchlist, portfolios, theme) is stored client-side in <code>localStorage</code> at MVP. There is no user account system, no server-side profile storage, and no auth. This is a known limitation — user data is browser-specific and lost if the browser storage is cleared.</div>
+  </div>
+
+
+  <!-- ── PAGES ─────────────────────────────────────────────────── -->
+  <h2 id="pages">Pages &amp; Key Components</h2>
+
+  <table>
+    <tr><th>Page / Component</th><th>File</th><th>Key data calls</th></tr>
+    <tr><td>Dashboard</td><td><code>pages/Dashboard.jsx</code></td><td><code>getQuotes(holdingTickers)</code> for snapshot + P&amp;L math; <code>getNews()</code> for feed; watchlist from hook</td></tr>
+    <tr><td>Portfolios</td><td><code>pages/Portfolios.jsx</code></td><td><code>getQuotes()</code> for table; <code>getPortfolioHistory()</code> for performance chart</td></tr>
+    <tr><td>Watchlist</td><td><code>pages/Watchlist.jsx</code></td><td><code>getQuotes(watchlistTickers)</code></td></tr>
+    <tr><td>Market</td><td><code>pages/Market.jsx</code></td><td><code>getQuotes(indexETFs + sectorETFs + movers)</code></td></tr>
+    <tr><td>News</td><td><code>pages/News.jsx</code></td><td><code>getNews({filter})</code></td></tr>
+    <tr><td>Screener</td><td><code>pages/Screener.jsx</code></td><td>Filter UI only — results endpoint not yet wired</td></tr>
+    <tr><td>Profile</td><td><code>pages/Profile.jsx</code></td><td>localStorage reads — no API calls</td></tr>
+    <tr><td>CompanyDrawer</td><td><code>components/CompanyDrawer.jsx</code></td><td><code>getPortfolioFull(ticker)</code> (on open), <code>getFinancials(ticker)</code></td></tr>
+    <tr><td>AssistantPanel</td><td><code>components/AssistantPanel.jsx</code></td><td><code>queryKite(question, portfolioTickers)</code></td></tr>
+    <tr><td>GlobalSearch</td><td><code>App.jsx</code></td><td><code>searchSymbols(query)</code> debounced 250ms; <code>getQuotes([symbol])</code> on select</td></tr>
+  </table>
+
+  <h3>AssistantPanel — action detection</h3>
+  <p>After every assistant response, <code>detectActions(text, portfolioTickers)</code> scans the answer text for:</p>
+  <ul>
+    <li><strong>Ticker mentions</strong> — regex <code>/\b([A-Z]{1,5})\b/g</code> matched against a set of ~50 common large-caps plus the user's portfolio tickers. Matched tickers become clickable chips that open the CompanyDrawer.</li>
+    <li><strong>Navigation cues</strong> — regex patterns for words like "market", "screener", "watchlist", "portfolio", "news". Matched patterns surface a navigation chip (e.g. "Open Market →") that calls <code>useNavigate()</code>.</li>
+  </ul>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       DEPLOYMENT
+  ══════════════════════════════════════════════════════════════ -->
+  <h2 id="deployment">Infrastructure &amp; Deployment</h2>
+
+  <table>
+    <tr><th>Component</th><th>Platform</th><th>How deployed</th></tr>
+    <tr><td>Frontend (React/Vite)</td><td>Vercel</td><td>Git push to main → auto-deploy. <code>VITE_API_URL</code> set in Vercel env.</td></tr>
+    <tr><td>Backend (FastAPI)</td><td>Railway</td><td>Dockerfile or Nixpacks auto-detect. Start command: <code>uvicorn backend.main:app --host 0.0.0.0 --port $PORT</code></td></tr>
+    <tr><td>Database</td><td>Supabase</td><td>Managed PostgreSQL + pgvector. Connection strings in Railway env vars.</td></tr>
+  </table>
+
+  <h3>Local development</h3>
+  <pre><code><span class="cm"># Terminal 1 — Backend</span>
+cd kite
+pip install -r requirements.txt
+uvicorn backend.main:app --reload --port 8000
+
+<span class="cm"># Terminal 2 — Frontend</span>
+cd frontend
+npm install
+npm run dev              <span class="cm"># Vite starts on http://localhost:5173</span>
+
+<span class="cm"># .env (project root)</span>
+TWELVE_DATA_API_KEY=...
+ANTHROPIC_API_KEY=...
+SUPABASE_URL=...
+SUPABASE_KEY=...
+DATABASE_URL=...
+
+<span class="cm"># frontend/.env.local</span>
+VITE_API_URL=http://localhost:8000</code></pre>
+
+  <h3>CORS</h3>
+  <p>Currently set to <code>allow_origins=["*"]</code> in <code>main.py</code> for development convenience. Before production go-live, restrict this to the Vercel deployment URL and any preview URL patterns.</p>
+
+
+  <!-- ── COSTS ─────────────────────────────────────────────────── -->
+  <h2 id="costs">API Costs &amp; Credit Math</h2>
+
+  <table>
+    <tr><th>API</th><th>Free tier</th><th>When credits are consumed</th></tr>
+    <tr>
+      <td>TwelveData</td>
+      <td>800 credits/day · 8/min</td>
+      <td>1 credit per ticker per API call. The scheduler uses ~50 credits every 15 min during market hours (≈ 2,400/day = 3× the free limit). Upgrade to Growth tier ($29/mo) for production.</td>
+    </tr>
+    <tr>
+      <td>Anthropic Claude</td>
+      <td>No free tier</td>
+      <td>Each /query call: ~2K input tokens + 8 chunk context + system prompt ≈ $0.001–$0.006. With prompt caching on the system prompt: ~$0.0003/query after first call.</td>
+    </tr>
+    <tr>
+      <td>Supabase</td>
+      <td>500 MB DB, 2 GB bandwidth</td>
+      <td>Free tier covers MVP. pgvector index + embeddings for ~10 tickers × 2 filings × 200 chunks = ~4,000 rows × 384 floats ≈ 6 MB. Well within free tier.</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon"></div>
+    <div>The scheduler refreshing 50 tickers every 15 minutes during market hours (6.5h/day) consumes <strong>~1,300 TwelveData credits/day</strong>. This exceeds the free 800/day limit. Either reduce MARKET_UNIVERSE or upgrade the plan before enabling the scheduler in production.</div>
+  </div>
+
+
+  <!-- ── ROADMAP ─────────────────────────────────────────────────── -->
+  <h2 id="roadmap-tech">Technical Roadmap</h2>
+
+  <table>
+    <tr><th>Item</th><th>Priority</th><th>Notes</th></tr>
+    <tr><td>Screener endpoint — filter stocks by KPIs</td><td>High</td><td>Read from <code>market_quotes</code> + <code>financials</code> tables. No new API calls needed.</td></tr>
+    <tr><td>Supabase user auth</td><td>High</td><td>Replace localStorage holdings/watchlist with server-side tables per user.</td></tr>
+    <tr><td>Upgrade Claude to Sonnet for /query</td><td>Medium</td><td>Change <code>DEFAULT_MODEL</code> in reasoner.py; add prompt caching on system message.</td></tr>
+    <tr><td>TwelveData plan upgrade</td><td>Medium</td><td>Free tier (800/day) too low once scheduler is active during market hours.</td></tr>
+    <tr><td>Connection pooling (PgBouncer)</td><td>Medium</td><td>psycopg2 opens a new connection per request; fine at MVP but will exhaust Supabase connection limit at scale.</td></tr>
+    <tr><td>Briefing generation (<code>/briefing</code>)</td><td>Medium</td><td>Wire up <code>outputs/briefing.py</code> — summarize alerts, P&amp;L, news into a daily brief.</td></tr>
+    <tr><td>Move /ingest to background task</td><td>Low</td><td>Currently synchronous; can block server for minutes. Move to APScheduler background job with status polling.</td></tr>
+    <tr><td>Restrict CORS origins</td><td>Low (pre-launch)</td><td>Change <code>allow_origins=["*"]</code> to specific Vercel URLs.</td></tr>
+    <tr><td>News data source</td><td>Low</td><td>Integrate a real-time financial news API (e.g. Polygon.io news, NewsAPI finance).</td></tr>
+  </table>
+
+  <hr />
+
+  <p style="font-size:12px; color:var(--muted); text-align:center; margin-top:20px;">
+    Kite Technical Reference · Internal use only · Last updated April 2026
+  </p>
+
+</main>
+</div>
+</body>
+</html>

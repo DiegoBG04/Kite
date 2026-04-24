@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kite — Product Overview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber:      #F5A623;
+      --amber-dark: #C47D0A;
+      --amber-wash: #FEF3DC;
+      --cream:      #FAF6EE;
+      --surface:    #FFFFFF;
+      --border:     #E8DFC8;
+      --heading:    #3D2E0F;
+      --body:       #5C4A28;
+      --muted:      #B0A080;
+      --positive:   #2D6A4F;
+      --negative:   #B54040;
+      --radius:     10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--cream);
+      color: var(--body);
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .page { max-width: 960px; margin: 0 auto; padding: 0 32px 80px; }
+
+    /* ── Typography ── */
+    h1 { font-family: Georgia, serif; font-size: 48px; font-weight: 400; color: var(--heading); letter-spacing: -0.02em; line-height: 1.1; }
+    h2 { font-family: Georgia, serif; font-size: 28px; font-weight: 400; color: var(--heading); margin-bottom: 12px; }
+    h3 { font-size: 14px; font-weight: 700; color: var(--heading); margin-bottom: 6px; }
+    p  { font-size: 15px; color: var(--body); line-height: 1.7; }
+    .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+    /* ── Components ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--amber-wash);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber-dark);
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--amber-wash);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--amber-dark);
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Kite Logo ── */
+    .logo-row { display: flex; align-items: center; gap: 12px; }
+    .logo-badge {
+      width: 48px; height: 48px;
+      background: var(--amber);
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-sub {
+      font-size: 19px;
+      color: var(--body);
+      margin-top: 16px;
+      max-width: 560px;
+      line-height: 1.6;
+    }
+    .tagline {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 13px;
+      font-style: italic;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Section ── */
+    .section { padding: 48px 0 0; }
+    .section-header { margin-bottom: 28px; }
+
+    /* ── Nav mockup ── */
+    .mock-nav {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 0 20px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .mock-nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      margin-right: 16px;
+    }
+    .mock-nav-logo-badge {
+      width: 24px; height: 24px;
+      background: var(--amber);
+      border-radius: 5px;
+    }
+    .mock-nav-wordmark {
+      font-family: Georgia, serif;
+      font-size: 17px;
+      color: var(--heading);
+    }
+    .mock-nav-link {
+      font-size: 12px;
+      padding: 4px 10px;
+      color: var(--muted);
+    }
+    .mock-nav-link.active {
+      color: var(--amber-dark);
+      font-weight: 600;
+    }
+    .mock-nav-spacer { flex: 1; }
+    .mock-search {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      width: 160px;
+    }
+    .mock-ask {
+      margin-left: 8px;
+      background: var(--amber-wash);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--amber-dark);
+    }
+    .mock-avatar {
+      margin-left: 8px;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--amber-wash);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; color: var(--amber-dark);
+    }
+
+    /* ── Screen mockups ── */
+    .screen {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .screen-body { display: flex; height: 340px; }
+    .screen-main { flex: 1; padding: 16px 20px; overflow: hidden; }
+    .screen-side {
+      width: 200px;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      padding: 12px 14px;
+    }
+    .mock-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .mock-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .ticker { font-family: monospace; font-weight: 700; color: var(--amber-dark); font-size: 12px; }
+    .price  { font-size: 12px; color: var(--heading); }
+    .pos    { color: var(--positive); font-size: 11px; }
+    .neg    { color: var(--negative); font-size: 11px; }
+    .muted  { color: var(--muted); font-size: 11px; }
+
+    /* Sparkline placeholder */
+    .spark {
+      height: 24px;
+      background: linear-gradient(90deg, transparent, rgba(245,166,35,0.15), transparent);
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .spark svg { position: absolute; bottom: 0; width: 100%; }
+
+    /* Stat tile */
+    .stat-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .stat-value { font-size: 20px; font-weight: 500; color: var(--heading); margin: 4px 0 2px; }
+    .stat-sub   { font-size: 11px; }
+
+    /* Chart placeholder */
+    .chart-placeholder {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      padding: 14px 14px 8px;
+      height: 100px;
+    }
+    .bar {
+      flex: 1;
+      border-radius: 3px 3px 0 0;
+      background: var(--amber);
+      opacity: 0.8;
+    }
+
+    /* Area chart */
+    .area-chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      height: 110px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Feature cards */
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .feature-icon {
+      width: 36px; height: 36px;
+      background: var(--amber-wash);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    .feature-title { font-size: 14px; font-weight: 700; color: var(--heading); margin-bottom: 6px; }
+    .feature-desc  { font-size: 13px; color: var(--body); line-height: 1.55; }
+
+    /* Tech stack */
+    .stack-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stack-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Assistant mockup */
+    .assistant-panel {
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .assistant-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chat-bubble-user {
+      background: var(--amber-wash);
+      border: 1px solid var(--border);
+      border-radius: 12px 12px 4px 12px;
+      padding: 8px 11px;
+      font-size: 12px;
+      color: var(--heading);
+      margin: 8px 0 8px 24px;
+    }
+    .chat-bubble-ai {
+      padding: 6px 0 8px;
+      font-size: 12px;
+      color: var(--heading);
+      line-height: 1.5;
+    }
+    .action-chip {
+      display: inline-block;
+      margin: 2px 3px 2px 0;
+      padding: 3px 9px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--amber-dark);
+      font-family: monospace;
+    }
+    .nav-chip {
+      display: inline-block;
+      margin: 2px 3px 2px 0;
+      padding: 3px 9px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    @media print {
+      .page { padding: 0 24px 40px; }
+      .hero { padding: 40px 0 32px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="logo-row">
+      <div class="logo-badge">
+        <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,6 32,20 20,27 8,20" fill="#FFFFFF"/>
+          <line x1="20" y1="27" x2="20" y2="36" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+          <line x1="16.5" y1="31" x2="23.5" y2="33" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <h1 style="margin-top:20px;">Kite</h1>
+    <p class="hero-sub">
+      An AI-powered investment intelligence platform that puts institutional-grade portfolio analysis in the hands of individual investors. Real data, real reasoning — not generic market noise.
+    </p>
+    <span class="tagline">Fly above the noise.</span>
+
+    <div style="display:flex; gap:10px; margin-top:28px; flex-wrap:wrap;">
+      <span class="pill">Portfolio Analytics</span>
+      <span class="pill">AI Assistant</span>
+      <span class="pill">Real-Time Quotes</span>
+      <span class="pill">SEC Filings RAG</span>
+      <span class="pill">Market Intelligence</span>
+      <span class="pill">Screener</span>
+    </div>
+  </div>
+
+  <!-- ── What is Kite ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="label">Overview</div>
+      <h2 style="margin-top:8px;">What is Kite?</h2>
+    </div>
+    <p>
+      Kite is a personal investment intelligence platform built for investors who want more than price charts. It combines live market data, SEC filing analysis, and an AI assistant that understands your specific portfolio — not generic financial advice.
+    </p>
+    <p style="margin-top:12px;">
+      Unlike platforms that require institutional access or charge thousands per year, Kite is built to give individuals the same analytical depth that professional analysts use: revenue trend analysis, earnings comparisons, sector concentration risk, and AI-generated briefs — all anchored to your actual holdings.
+    </p>
+
+    <div class="grid-3" style="margin-top:24px;">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Portfolio-first</div>
+        <div class="feature-desc">Every analysis is anchored to your holdings. P&L, day returns, concentration risk — calculated from your actual positions.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI that acts</div>
+        <div class="feature-desc">Ask questions in plain English. The assistant pulls live data, reasons over it, and navigates you to the right screen — not just text answers.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">SEC Filing RAG</div>
+        <div class="feature-desc">Ingests 10-K and 10-Q filings via EDGAR. Ask about risk factors, revenue drivers, or management commentary with cited sources.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Nav ── -->
+  <div class="section-header">
+    <div class="label">Navigation</div>
+    <h2 style="margin-top:8px;">Global Interface</h2>
+    <p style="margin-top:8px; max-width:560px;">A persistent nav bar gives access to all screens. The global search finds any security instantly. The "Ask Kite" button opens the AI assistant panel from anywhere in the app.</p>
+  </div>
+
+  <div class="mock-nav" style="border-radius:10px; margin-top:16px;">
+    <div class="mock-nav-logo">
+      <div class="mock-nav-logo-badge"></div>
+      <div class="mock-nav-wordmark">Kite</div>
+    </div>
+    <span class="mock-nav-link active">Dashboard</span>
+    <span class="mock-nav-link">Portfolios</span>
+    <span class="mock-nav-link">Watchlist</span>
+    <span class="mock-nav-link">Market</span>
+    <span class="mock-nav-link">News</span>
+    <span class="mock-nav-link">Screener</span>
+    <div class="mock-nav-spacer"></div>
+    <div class="mock-search">🔍 Search companies…</div>
+    <div class="mock-ask">✦ Ask Kite</div>
+    <div class="mock-avatar">DB</div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Dashboard ── -->
+  <div class="section-header">
+    <div class="label">Screen 1</div>
+    <h2 style="margin-top:8px;">Dashboard — Morning Brief</h2>
+    <p style="margin-top:8px; max-width:580px;">The command center. Opens every session with an AI-generated brief, real portfolio snapshot, smart alerts for your holdings, top news, and an upcoming earnings calendar. Watchlist on the right for quick price checks.</p>
+  </div>
+
+  <div class="screen">
+    <!-- Nav -->
+    <div class="mock-nav" style="border-radius:0; height:40px;">
+      <div class="mock-nav-logo">
+        <div class="mock-nav-logo-badge" style="width:20px;height:20px;border-radius:4px;"></div>
+        <div class="mock-nav-wordmark" style="font-size:14px;">Kite</div>
+      </div>
+      <span class="mock-nav-link active" style="font-size:11px;">Dashboard</span>
+      <span class="mock-nav-link" style="font-size:11px;">Portfolios</span>
+      <span class="mock-nav-link" style="font-size:11px;">Market</span>
+      <div class="mock-nav-spacer"></div>
+      <div class="mock-ask" style="font-size:10px; padding:3px 8px;">✦ Ask Kite</div>
+      <div class="mock-avatar" style="width:22px;height:22px;font-size:8px;margin-left:6px;">DB</div>
+    </div>
+
+    <div class="screen-body">
+      <div class="screen-main">
+        <!-- AI Brief -->
+        <div class="mock-card" style="margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:9px; font-weight:700; letter-spacing:0.08em; color:var(--amber-dark);">AI BRIEF</span>
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+            <span style="font-size:10px; color:var(--muted);">Thursday, April 24</span>
+          </div>
+          <div style="font-size:11px; color:var(--heading); line-height:1.5; margin-bottom:4px;">📈 Your portfolio is outperforming SPY by 2.3% over the past 30 days.</div>
+          <div style="font-size:11px; color:var(--heading); line-height:1.5; margin-bottom:4px;">⚠️ NVDA reports earnings in 4 days — your position is 18% of portfolio.</div>
+          <div style="font-size:11px; color:var(--heading); line-height:1.5;">💡 Sector rotation into defensives accelerating. XLV well-positioned.</div>
+        </div>
+
+        <!-- Stat tiles -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px;">
+          <div class="stat-tile">
+            <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Portfolio Value</div>
+            <div class="stat-value" style="font-size:16px;">$84,230</div>
+          </div>
+          <div class="stat-tile">
+            <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Day P&L</div>
+            <div class="stat-value pos" style="font-size:16px;">+$412</div>
+            <div class="stat-sub pos">+0.49%</div>
+          </div>
+          <div class="stat-tile">
+            <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Total Return</div>
+            <div class="stat-value pos" style="font-size:16px;">+$9,230</div>
+            <div class="stat-sub pos">+12.3%</div>
+          </div>
+          <div class="stat-tile">
+            <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Holdings</div>
+            <div class="stat-value" style="font-size:16px;">8</div>
+          </div>
+        </div>
+
+        <!-- News headlines -->
+        <div class="mock-card" style="padding:10px 12px;">
+          <div style="font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">Top News</div>
+          <div class="mock-row"><span class="muted">Reuters · <strong style="color:var(--heading);">NVDA beats estimates, raises guidance</strong></span><span class="muted">2h</span></div>
+          <div class="mock-row"><span class="muted">WSJ · <strong style="color:var(--heading);">Fed signals pause in rate hike cycle</strong></span><span class="muted">4h</span></div>
+          <div class="mock-row" style="border:none;"><span class="muted">Bloomberg · <strong style="color:var(--heading);">Apple services revenue hits record</strong></span><span class="muted">6h</span></div>
+        </div>
+      </div>
+
+      <!-- Watchlist side -->
+      <div class="screen-side">
+        <div style="font-size:11px; font-weight:700; color:var(--heading); margin-bottom:10px;">My Watchlist</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Security</span>
+          <span style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">1D%</span>
+        </div>
+        <div class="mock-row"><span class="ticker">AAPL</span><span class="pos">+0.82%</span></div>
+        <div class="mock-row"><span class="ticker">MSFT</span><span class="neg">-0.34%</span></div>
+        <div class="mock-row"><span class="ticker">NVDA</span><span class="pos">+2.14%</span></div>
+        <div class="mock-row"><span class="ticker">TSLA</span><span class="neg">-1.22%</span></div>
+        <div class="mock-row"><span class="ticker">META</span><span class="pos">+0.67%</span></div>
+        <div style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+          <div style="font-size:11px; color:var(--amber-dark); font-weight:600;">+ Add Security</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Portfolios ── -->
+  <div class="section-header">
+    <div class="label">Screen 2</div>
+    <h2 style="margin-top:8px;">Portfolios — Holdings Table</h2>
+    <p style="margin-top:8px; max-width:580px;">Full holdings view with live prices. Columns include shares, average cost, market value, day P&L, total P&L, portfolio weight, and key metrics. Clicking any row opens the Company View drawer.</p>
+  </div>
+
+  <div class="screen">
+    <div class="mock-nav" style="border-radius:0; height:40px;">
+      <div class="mock-nav-logo"><div class="mock-nav-logo-badge" style="width:20px;height:20px;border-radius:4px;"></div><div class="mock-nav-wordmark" style="font-size:14px;">Kite</div></div>
+      <span class="mock-nav-link" style="font-size:11px;">Dashboard</span>
+      <span class="mock-nav-link active" style="font-size:11px;">Portfolios</span>
+      <div class="mock-nav-spacer"></div>
+    </div>
+    <div style="height:300px; overflow:hidden; padding:0;">
+      <div style="padding:12px 16px; border-bottom:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:13px; font-weight:700; color:var(--heading);">My Portfolio</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:1px;">8 holdings · Total value $84,230</div>
+        </div>
+        <div style="font-size:11px; color:var(--amber-dark); font-weight:600; border:1px solid var(--border); padding:4px 10px; border-radius:6px;">Edit Portfolio</div>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:11px;">
+        <thead>
+          <tr style="background:var(--surface); height:32px;">
+            <th style="padding:0 12px; text-align:left; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Company</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Shares</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Avg Cost</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Mkt Value</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Day P&L</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Total P&L</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">P/E</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border); height:40px; background:var(--surface);">
+            <td style="padding:0 12px;"><span class="ticker">AAPL</span> <span class="muted">Apple Inc.</span></td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">50</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$162.40</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$9,908</td>
+            <td style="padding:0 12px; text-align:right;" class="pos">+$81.50</td>
+            <td style="padding:0 12px; text-align:right;" class="pos">+$1,788</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">31.2</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); height:40px;">
+            <td style="padding:0 12px;"><span class="ticker">NVDA</span> <span class="muted">NVIDIA Corp.</span></td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">20</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$610.00</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$17,508</td>
+            <td style="padding:0 12px; text-align:right;" class="pos">+$374</td>
+            <td style="padding:0 12px; text-align:right;" class="pos">+$5,308</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">68.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border); height:40px; background:var(--surface);">
+            <td style="padding:0 12px;"><span class="ticker">MSFT</span> <span class="muted">Microsoft Corp.</span></td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">30</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$320.00</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">$11,640</td>
+            <td style="padding:0 12px; text-align:right;" class="neg">-$39.60</td>
+            <td style="padding:0 12px; text-align:right;" class="pos">+$2,040</td>
+            <td style="padding:0 12px; text-align:right; color:var(--heading);">34.2</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Company View ── -->
+  <div class="section-header">
+    <div class="label">Screen 3</div>
+    <h2 style="margin-top:8px;">Company View — Deep Dive Drawer</h2>
+    <p style="margin-top:8px; max-width:580px;">Click any ticker to open a full company analysis panel. Three tabs: Financials (price chart + revenue/margins/cash), Trends (YoY scorecard with sparklines), and News.</p>
+  </div>
+
+  <div style="display:flex; gap:16px; margin-top:16px;">
+    <div style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;">
+      <!-- Drawer header -->
+      <div style="padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;">
+        <div style="width:38px; height:38px; background:var(--amber-wash); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--amber-dark);">AAPL</div>
+        <div style="flex:1;">
+          <div style="font-size:15px; color:var(--heading);">Apple Inc.</div>
+          <div style="font-size:10px; color:var(--amber-dark); font-weight:700; margin-top:2px;">AAPL · NASDAQ</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px; font-weight:500; color:var(--heading);">$198.15</div>
+          <div style="font-size:12px;" class="neg">-1.23%</div>
+        </div>
+        <div style="display:flex; gap:16px; padding-left:16px; border-left:1px solid var(--border);">
+          <div style="text-align:center;"><div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase;">P/E</div><div style="font-size:12px; color:var(--heading);">31.2</div></div>
+          <div style="text-align:center;"><div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase;">Mkt Cap</div><div style="font-size:12px; color:var(--heading);">$3.05T</div></div>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex; border-bottom:1px solid var(--border); padding-left:18px;">
+        <div style="padding:10px 16px; font-size:12px; font-weight:600; color:var(--amber-dark); border-bottom:2px solid var(--amber-dark);">Financials</div>
+        <div style="padding:10px 16px; font-size:12px; color:var(--muted);">Trends</div>
+        <div style="padding:10px 16px; font-size:12px; color:var(--muted);">News</div>
+      </div>
+      <!-- Chart area -->
+      <div style="padding:14px 18px;">
+        <!-- Period buttons -->
+        <div style="display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap;">
+          <span style="font-size:10px; padding:3px 8px; background:var(--amber-wash); border:1px solid var(--border); border-radius:5px; color:var(--amber-dark); font-weight:700;">1M</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">3M</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">6M</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">1Y</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">2Y</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">5Y</span>
+          <span style="font-size:10px; padding:3px 8px; color:var(--muted);">MAX</span>
+        </div>
+        <!-- Area chart SVG -->
+        <div class="area-chart">
+          <svg viewBox="0 0 300 80" preserveAspectRatio="none" style="position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#B54040" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#B54040" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,20 L30,18 L60,22 L90,28 L120,35 L150,30 L180,38 L210,45 L240,55 L270,60 L300,70 L300,80 L0,80 Z" fill="url(#g1)"/>
+            <path d="M0,20 L30,18 L60,22 L90,28 L120,35 L150,30 L180,38 L210,45 L240,55 L270,60 L300,70" fill="none" stroke="#B54040" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <!-- Stats row -->
+        <div style="display:flex; border-top:1px solid var(--border); margin-top:8px; padding-top:8px; gap:0;">
+          <div style="flex:1; text-align:center; border-right:1px solid var(--border); padding:2px 0;"><div style="font-size:8px; color:var(--muted); text-transform:uppercase; font-weight:700;">52W H</div><div style="font-size:11px; color:var(--heading);">$237.49</div></div>
+          <div style="flex:1; text-align:center; border-right:1px solid var(--border); padding:2px 0;"><div style="font-size:8px; color:var(--muted); text-transform:uppercase; font-weight:700;">52W L</div><div style="font-size:11px; color:var(--heading);">$164.08</div></div>
+          <div style="flex:1; text-align:center; border-right:1px solid var(--border); padding:2px 0;"><div style="font-size:8px; color:var(--muted); text-transform:uppercase; font-weight:700;">P/E</div><div style="font-size:11px; color:var(--heading);">31.2</div></div>
+          <div style="flex:1; text-align:center; padding:2px 0;"><div style="font-size:8px; color:var(--muted); text-transform:uppercase; font-weight:700;">Beta</div><div style="font-size:11px; color:var(--heading);">1.24</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue chart card -->
+    <div style="width:220px; display:flex; flex-direction:column; gap:12px;">
+      <div class="mock-card" style="flex:1;">
+        <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Revenue (Annual)</div>
+        <div class="chart-placeholder" style="height:80px; padding:8px 8px 4px;">
+          <div class="bar" style="height:50%;"></div>
+          <div class="bar" style="height:62%;"></div>
+          <div class="bar" style="height:70%;"></div>
+          <div class="bar" style="height:78%;"></div>
+          <div class="bar" style="height:100%;"></div>
+        </div>
+        <div style="font-size:11px; color:var(--heading); margin-top:6px; font-weight:500;">$391B <span class="pos">+4.1%</span></div>
+      </div>
+      <div class="mock-card" style="flex:1;">
+        <div style="font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Net Margin</div>
+        <div class="chart-placeholder" style="height:80px; padding:8px 8px 4px;">
+          <div class="bar" style="height:78%; background:#2D6A4F;"></div>
+          <div class="bar" style="height:82%; background:#2D6A4F;"></div>
+          <div class="bar" style="height:84%; background:#2D6A4F;"></div>
+          <div class="bar" style="height:88%; background:#2D6A4F;"></div>
+          <div class="bar" style="height:100%; background:#2D6A4F;"></div>
+        </div>
+        <div style="font-size:11px; color:var(--heading); margin-top:6px; font-weight:500;">26.3% <span class="pos">+1.8%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Market ── -->
+  <div class="section-header">
+    <div class="label">Screen 4</div>
+    <h2 style="margin-top:8px;">Market — Movers &amp; Sectors</h2>
+    <p style="margin-top:8px; max-width:580px;">Live market overview with top gainers and losers, sector ETF performance heatmap, and a normalized performance chart comparing multiple assets over any time period.</p>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:16px;">
+    <div class="mock-card">
+      <div style="font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--positive); margin-bottom:8px;">Top Gainers</div>
+      <div class="mock-row"><span class="ticker">NVDA</span><span class="pos">+4.21%</span></div>
+      <div class="mock-row"><span class="ticker">AMD</span><span class="pos">+3.18%</span></div>
+      <div class="mock-row" style="border:none;"><span class="ticker">META</span><span class="pos">+2.67%</span></div>
+    </div>
+    <div class="mock-card">
+      <div style="font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--negative); margin-bottom:8px;">Top Losers</div>
+      <div class="mock-row"><span class="ticker">BA</span><span class="neg">-3.45%</span></div>
+      <div class="mock-row"><span class="ticker">TSLA</span><span class="neg">-2.88%</span></div>
+      <div class="mock-row" style="border:none;"><span class="ticker">XLE</span><span class="neg">-1.62%</span></div>
+    </div>
+    <div class="mock-card">
+      <div style="font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:8px;">Sectors</div>
+      <div class="mock-row"><span class="muted">Technology</span><span class="pos">+1.8%</span></div>
+      <div class="mock-row"><span class="muted">Healthcare</span><span class="pos">+0.4%</span></div>
+      <div class="mock-row" style="border:none;"><span class="muted">Energy</span><span class="neg">-0.9%</span></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Watchlist ── -->
+  <div class="section-header">
+    <div class="label">Screen 5</div>
+    <h2 style="margin-top:8px;">Watchlist — Full Metrics Table</h2>
+    <p style="margin-top:8px; max-width:580px;">Comprehensive table for all tracked securities. Sortable by any column. Columns include price, day %, market cap, P/E, EPS, beta, revenue growth, and 52-week range. Click any row to open Company View.</p>
+  </div>
+
+  <div class="mock-card" style="padding:0; overflow:hidden; border-radius:var(--radius);">
+    <table style="width:100%; border-collapse:collapse; font-size:11px;">
+      <thead>
+        <tr style="background:var(--surface); height:32px;">
+          <th style="padding:0 12px; text-align:left; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Company</th>
+          <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--amber-dark); border-bottom:1px solid var(--border);">Price ↑</th>
+          <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Day %</th>
+          <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Mkt Cap</th>
+          <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">P/E</th>
+          <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Beta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border); height:40px; background:var(--surface);">
+          <td style="padding:0 12px;"><span class="ticker">AAPL</span> <span class="muted">Apple Inc.</span></td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$198.15</td>
+          <td style="padding:0 12px; text-align:right;" class="neg">-1.23%</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$3.05T</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">31.2</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">1.24</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border); height:40px;">
+          <td style="padding:0 12px;"><span class="ticker">NVDA</span> <span class="muted">NVIDIA Corp.</span></td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$875.40</td>
+          <td style="padding:0 12px; text-align:right;" class="pos">+2.14%</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$2.15T</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">68.1</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">1.68</td>
+        </tr>
+        <tr style="height:40px; background:var(--surface);">
+          <td style="padding:0 12px;"><span class="ticker">MSFT</span> <span class="muted">Microsoft Corp.</span></td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$388.00</td>
+          <td style="padding:0 12px; text-align:right;" class="neg">-0.50%</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">$2.88T</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">34.2</td>
+          <td style="padding:0 12px; text-align:right; color:var(--heading);">0.90</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── AI Assistant ── -->
+  <div class="section-header">
+    <div class="label">Feature</div>
+    <h2 style="margin-top:8px;">AI Assistant — Ask Kite</h2>
+    <p style="margin-top:8px; max-width:580px;">A persistent assistant panel accessible from every screen. Backed by Claude (Anthropic), with context from your portfolio and RAG over ingested SEC filings. Responses include action chips that open the relevant company or navigate to the right screen.</p>
+  </div>
+
+  <div style="display:flex; gap:20px; align-items:flex-start; margin-top:16px;">
+    <div class="assistant-panel">
+      <div class="assistant-header">
+        <div style="width:20px; height:20px; background:var(--amber); border-radius:4px; flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:12px; font-weight:700; color:var(--heading);">Ask Kite</div>
+          <div style="font-size:9px; color:var(--muted);">AI assistant · portfolio-aware</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px;">
+        <div class="chat-bubble-user">What are the main risks for NVDA right now?</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+          <div style="width:14px; height:14px; background:var(--amber); border-radius:3px;"></div>
+          <span style="font-size:10px; font-weight:700; color:var(--amber-dark);">Kite</span>
+          <span style="font-size:8px; font-weight:700; color:var(--amber-dark); background:var(--amber-wash); border:1px solid var(--border); border-radius:3px; padding:1px 4px;">SOURCED</span>
+        </div>
+        <div class="chat-bubble-ai">Based on NVDA's latest 10-K, the key risks are: <strong>export controls</strong> on AI chips to China (~20% of data center revenue), <strong>customer concentration</strong> in hyperscalers, and <strong>supply chain</strong> dependency on TSMC. At 68x P/E, any guidance miss would hit hard — and earnings are in 4 days.</div>
+        <div style="margin-top:8px;">
+          <span class="action-chip">NVDA ↗</span>
+          <span class="action-chip">TSMC ↗</span>
+          <span class="nav-chip">Open Market →</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;">
+      <h3 style="margin-bottom:12px;">Capabilities</h3>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div>
+          <div style="font-size:13px; font-weight:600; color:var(--heading); margin-bottom:2px;">Portfolio-aware answers</div>
+          <div style="font-size:12px; color:var(--body);">Knows your holdings, cost basis, and P&L. Can answer "which of my holdings has the highest concentration risk" with real numbers.</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div>
+          <div style="font-size:13px; font-weight:600; color:var(--heading); margin-bottom:2px;">SEC filing RAG</div>
+          <div style="font-size:12px; color:var(--body);">Ingests 10-K and 10-Q filings via EDGAR. Every answer citing a filing is sourced with a direct link to the document.</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div>
+          <div style="font-size:13px; font-weight:600; color:var(--heading); margin-bottom:2px;">Navigation actions</div>
+          <div style="font-size:12px; color:var(--body);">Responses include chips that open a company drawer, navigate to the Market or Screener page, or highlight the relevant data.</div>
+        </div>
+      </div>
+      <div class="stack-item" style="border:none;">
+        <div class="stack-dot"></div>
+        <div>
+          <div style="font-size:13px; font-weight:600; color:var(--heading); margin-bottom:2px;">Persistent across pages</div>
+          <div style="font-size:12px; color:var(--body);">The conversation stays open as you navigate between screens. Ask a question on Dashboard, browse to Portfolios, come back.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Screener ── -->
+  <div class="section-header">
+    <div class="label">Screen 6</div>
+    <h2 style="margin-top:8px;">Screener — Filter the Market</h2>
+    <p style="margin-top:8px; max-width:580px;">Filter the full market universe by valuation, growth, profitability, and technical metrics. Set ranges for P/E, revenue growth, net margin, beta, and more. Active filters appear as removable chips. Results are sortable by any column.</p>
+  </div>
+
+  <div style="display:flex; gap:0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-top:16px; background:var(--surface);">
+    <!-- Filter panel -->
+    <div style="width:200px; border-right:1px solid var(--border); padding:12px 14px; background:var(--surface);">
+      <div style="font-size:12px; font-weight:700; color:var(--heading); margin-bottom:12px;">Filters</div>
+      <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin-bottom:8px;">Sector</div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:14px;">
+        <span style="font-size:9px; padding:2px 7px; background:var(--amber-wash); border:1px solid var(--amber-dark); border-radius:20px; color:var(--amber-dark); font-weight:700;">Technology</span>
+        <span style="font-size:9px; padding:2px 7px; border:1px solid var(--border); border-radius:20px; color:var(--muted);">Healthcare</span>
+        <span style="font-size:9px; padding:2px 7px; border:1px solid var(--border); border-radius:20px; color:var(--muted);">Financials</span>
+      </div>
+      <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin-bottom:8px;">Valuation</div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px; color:var(--amber-dark); font-weight:600; margin-bottom:4px;">P/E Ratio</div>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <div style="flex:1; padding:3px 6px; background:var(--cream); border:1px solid var(--amber-dark); border-radius:4px; font-size:10px; color:var(--heading);">0</div>
+          <span style="font-size:10px; color:var(--muted);">–</span>
+          <div style="flex:1; padding:3px 6px; background:var(--cream); border:1px solid var(--amber-dark); border-radius:4px; font-size:10px; color:var(--heading);">40</div>
+          <span style="font-size:9px; color:var(--muted);">×</span>
+        </div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px; color:var(--muted); font-weight:600; margin-bottom:4px;">Revenue Growth</div>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <div style="flex:1; padding:3px 6px; background:var(--cream); border:1px solid var(--border); border-radius:4px; font-size:10px; color:var(--muted);">Min</div>
+          <span style="font-size:10px; color:var(--muted);">–</span>
+          <div style="flex:1; padding:3px 6px; background:var(--cream); border:1px solid var(--border); border-radius:4px; font-size:10px; color:var(--muted);">Max</div>
+          <span style="font-size:9px; color:var(--muted);">%</span>
+        </div>
+      </div>
+    </div>
+    <!-- Results -->
+    <div style="flex:1; display:flex; flex-direction:column;">
+      <!-- Active chips -->
+      <div style="padding:8px 14px; border-bottom:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:10px; padding:3px 8px; background:var(--amber-wash); border:1px solid var(--border); border-radius:20px; color:var(--amber-dark);">Sector: Technology ×</span>
+        <span style="font-size:10px; padding:3px 8px; background:var(--amber-wash); border:1px solid var(--border); border-radius:20px; color:var(--amber-dark);">P/E: 0–40 × ×</span>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:11px;">
+        <thead>
+          <tr style="height:30px;">
+            <th style="padding:0 12px; text-align:left; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Company</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Price</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">P/E</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Rev Growth</th>
+            <th style="padding:0 12px; text-align:right; font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border);">Net Margin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border); height:36px; background:var(--surface);"><td style="padding:0 12px;"><span class="ticker">AAPL</span></td><td style="padding:0 12px; text-align:right; color:var(--heading);">$198</td><td style="padding:0 12px; text-align:right; color:var(--heading);">31.2</td><td style="padding:0 12px; text-align:right;" class="pos">+4.1%</td><td style="padding:0 12px; text-align:right;" class="pos">26.3%</td></tr>
+          <tr style="border-bottom:1px solid var(--border); height:36px;"><td style="padding:0 12px;"><span class="ticker">MSFT</span></td><td style="padding:0 12px; text-align:right; color:var(--heading);">$388</td><td style="padding:0 12px; text-align:right; color:var(--heading);">34.2</td><td style="padding:0 12px; text-align:right;" class="pos">+17.6%</td><td style="padding:0 12px; text-align:right;" class="pos">35.8%</td></tr>
+          <tr style="height:36px; background:var(--surface);"><td style="padding:0 12px;"><span class="ticker">ORCL</span></td><td style="padding:0 12px; text-align:right; color:var(--heading);">$124</td><td style="padding:0 12px; text-align:right; color:var(--heading);">36.8</td><td style="padding:0 12px; text-align:right;" class="pos">+12.4%</td><td style="padding:0 12px; text-align:right;" class="pos">21.6%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Tech Stack ── -->
+  <div class="section-header">
+    <div class="label">Architecture</div>
+    <h2 style="margin-top:8px;">How It's Built</h2>
+  </div>
+
+  <div class="grid-2" style="margin-top:4px;">
+    <div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Frontend — React + Vite</div><div style="font-size:12px; color:var(--body); margin-top:2px;">Single-page app. Recharts for all data visualizations. Deployed on Vercel.</div></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Backend — FastAPI (Python)</div><div style="font-size:12px; color:var(--body); margin-top:2px;">REST API with APScheduler for background jobs. Deployed on Railway.</div></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Database — Supabase (PostgreSQL)</div><div style="font-size:12px; color:var(--body); margin-top:2px;">pgvector for semantic search on SEC filings. Quote and time-series cache tables reduce API calls to near-zero at scale.</div></div>
+      </div>
+      <div class="stack-item" style="border:none;">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">AI — Claude (Anthropic)</div><div style="font-size:12px; color:var(--body); margin-top:2px;">RAG pipeline over SEC filings. Retrieves relevant chunks via pgvector, reasons with Claude, returns cited answers.</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Market Data — TwelveData</div><div style="font-size:12px; color:var(--body); margin-top:2px;">Real-time quotes, historical time series, company stats. DB-first caching reduces API usage to ~26 credits/day at scale.</div></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Financial Data — SEC EDGAR XBRL</div><div style="font-size:12px; color:var(--body); margin-top:2px;">Revenue, net income, FCF, cash, debt — pulled directly from SEC structured filings. No third-party financial data provider needed.</div></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Background Jobs — APScheduler</div><div style="font-size:12px; color:var(--body); margin-top:2px;">Market quotes refreshed every 15 min during US market hours. Financial data re-ingested nightly at 2 AM UTC.</div></div>
+      </div>
+      <div class="stack-item" style="border:none;">
+        <div class="stack-dot"></div>
+        <div><div style="font-size:13px; font-weight:700; color:var(--heading);">Embeddings — OpenAI text-embedding-3-small</div><div style="font-size:12px; color:var(--body); margin-top:2px;">SEC filing chunks embedded at ingestion time. Stored in pgvector for sub-100ms semantic retrieval.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Status ── -->
+  <div class="section-header">
+    <div class="label">Status</div>
+    <h2 style="margin-top:8px;">What's Live, What's Next</h2>
+  </div>
+  <div class="grid-2" style="margin-top:4px;">
+    <div class="card">
+      <div style="font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--positive); margin-bottom:12px;">✓ Live</div>
+      <div style="display:flex; flex-direction:column; gap:7px; font-size:13px; color:var(--body);">
+        <div>Real-time quotes via TwelveData + Supabase cache</div>
+        <div>Portfolio P&L with cost basis tracking</div>
+        <div>Company View with price chart + financial charts</div>
+        <div>SEC filing ingestion and RAG-powered AI Q&A</div>
+        <div>Market movers and sector ETF overview</div>
+        <div>Full-featured watchlist with drag-to-reorder</div>
+        <div>News feed with sentiment and source filtering</div>
+        <div>Global search and AI assistant panel</div>
+        <div>Dark mode and profile customization</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--amber-dark); margin-bottom:12px;">→ Roadmap</div>
+      <div style="display:flex; flex-direction:column; gap:7px; font-size:13px; color:var(--body);">
+        <div>Screener with real data (filter full market universe)</div>
+        <div>Agentic AI assistant with tool calls and navigation actions</div>
+        <div>Portfolio analytics: sector allocation, correlation heatmap</div>
+        <div>AI-generated morning brief (personalized, daily)</div>
+        <div>Real earnings calendar from SEC/financial API</div>
+        <div>Price alerts and threshold notifications</div>
+        <div>Mobile-responsive layout</div>
+        <div>Multi-portfolio support</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="logo-row">
+      <div class="logo-badge" style="width:32px; height:32px; border-radius:7px;">
+        <svg width="22" height="22" viewBox="0 0 40 40" fill="none"><polygon points="20,6 32,20 20,27 8,20" fill="#FFF"/><line x1="20" y1="27" x2="20" y2="36" stroke="#FFF" stroke-width="2" stroke-linecap="round"/><line x1="16.5" y1="31" x2="23.5" y2="33" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <span style="font-family:Georgia,serif; font-size:18px; color:var(--heading);">Kite</span>
+    </div>
+    <span style="font-size:12px; color:var(--muted); font-style:italic;">Fly above the noise.</span>
+  </div>
+
+</div>
+</body>
+</html>

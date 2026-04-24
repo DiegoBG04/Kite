@@ -13,17 +13,21 @@ import Market from "./pages/Market";
 import Screener from "./pages/Screener";
 import CompanyDrawer from "./components/CompanyDrawer";
 import CompanyLogo from "./components/CompanyLogo";
+import AssistantPanel from "./components/AssistantPanel";
 import { useTheme } from "./hooks/useTheme";
+import { useHoldings } from "./hooks/useHoldings";
 import { searchSymbols, getQuotes } from "./api/client";
 
 const NAV_LINKS = [
-  { to: "/",          label: "Dashboard"  },
-  { to: "/portfolios",label: "Portfolios" },
-  { to: "/watchlist", label: "Watchlist"  },
-  { to: "/market",    label: "Market"     },
-  { to: "/news",      label: "News"       },
-  { to: "/screener",  label: "Screener"   },
+  { to: "/",           label: "Dashboard"  },
+  { to: "/portfolios", label: "Portfolios" },
+  { to: "/watchlist",  label: "Watchlist"  },
+  { to: "/market",     label: "Market"     },
+  { to: "/news",       label: "News"       },
+  { to: "/screener",   label: "Screener"   },
 ];
+
+// ── Global search ─────────────────────────────────────────────────────────────
 
 function GlobalSearch({ onOpen }) {
   const [query,     setQuery]     = useState("");
@@ -44,7 +48,6 @@ function GlobalSearch({ onOpen }) {
     return () => clearTimeout(t);
   }, [query]);
 
-  // Close on outside click
   useEffect(() => {
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
     document.addEventListener("mousedown", handler);
@@ -53,7 +56,6 @@ function GlobalSearch({ onOpen }) {
 
   async function select(symbol, name) {
     setQuery(""); setResults([]); setOpen(false);
-    // Fetch a lightweight quote so the drawer has real price data
     try {
       const [stock] = await getQuotes([symbol]);
       onOpen(stock ?? { ticker: symbol, name, price: 0, change_pct: 0 });
@@ -77,13 +79,10 @@ function GlobalSearch({ onOpen }) {
         />
         {searching && <span style={{ fontSize: "10px", color: "var(--kite-muted)" }}>…</span>}
       </div>
-
       {open && results.length > 0 && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "var(--kite-surface)", border: "1px solid var(--kite-border)", borderRadius: "var(--radius-sm)", zIndex: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", overflow: "hidden" }}>
           {results.map((r) => (
-            <button
-              key={r.symbol}
-              onClick={() => select(r.symbol, r.name)}
+            <button key={r.symbol} onClick={() => select(r.symbol, r.name)}
               style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--kite-cream)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "none"}
@@ -100,23 +99,20 @@ function GlobalSearch({ onOpen }) {
   );
 }
 
+// ── Nav avatar ────────────────────────────────────────────────────────────────
+
 function NavAvatar() {
   return (
     <NavLink to="/profile" style={{ textDecoration: "none" }} title="Profile">
       {({ isActive }) => (
         <div style={{
-          width: 34, height: 34,
-          borderRadius: "50%",
+          width: 34, height: 34, borderRadius: "50%",
           background: isActive ? "var(--kite-amber-dark)" : "var(--kite-amber-wash)",
           border: `2px solid ${isActive ? "var(--kite-amber-dark)" : "var(--kite-border)"}`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-body)",
-          fontSize: "12px",
-          fontWeight: "700",
+          fontSize: "12px", fontWeight: "700",
           color: isActive ? "#fff" : "var(--kite-amber-dark)",
-          cursor: "pointer",
-          transition: "all 0.15s",
-          flexShrink: 0,
+          cursor: "pointer", transition: "all 0.15s", flexShrink: 0,
         }}>
           DB
         </div>
@@ -125,9 +121,41 @@ function NavAvatar() {
   );
 }
 
+// ── AI toggle button ──────────────────────────────────────────────────────────
+
+function AskKiteButton({ open, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      title={open ? "Close assistant" : "Ask Kite AI"}
+      style={{
+        display: "flex", alignItems: "center", gap: "6px",
+        padding: "0 12px", height: "34px",
+        background: open ? "var(--kite-amber-dark)" : "var(--kite-amber-wash)",
+        border: `1px solid ${open ? "var(--kite-amber-dark)" : "var(--kite-border)"}`,
+        borderRadius: "var(--radius-sm)",
+        cursor: "pointer", transition: "all 0.15s", flexShrink: 0,
+      }}
+      onMouseEnter={(e) => { if (!open) { e.currentTarget.style.borderColor = "var(--kite-amber-dark)"; } }}
+      onMouseLeave={(e) => { if (!open) { e.currentTarget.style.borderColor = "var(--kite-border)"; } }}
+    >
+      <span style={{ fontSize: "13px" }}>✦</span>
+      <span style={{ fontSize: "12px", fontWeight: "600", color: open ? "#fff" : "var(--kite-amber-dark)" }}>
+        Ask Kite
+      </span>
+    </button>
+  );
+}
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+
 function Layout() {
   useTheme();
-  const [drawerStock, setDrawerStock] = useState(null);
+  const { holdings } = useHoldings();
+  const [drawerStock,    setDrawerStock]    = useState(null);
+  const [assistantOpen,  setAssistantOpen]  = useState(false);
+
+  const portfolioTickers = holdings.map((h) => h.ticker);
 
   const linkStyle = (isActive) => ({
     fontFamily: "var(--font-body)",
@@ -145,16 +173,11 @@ function Layout() {
   return (
     <>
       <nav style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0",
-        padding: "0 20px",
-        height: "52px",
+        display: "flex", alignItems: "center", gap: "0",
+        padding: "0 20px", height: "52px",
         background: "var(--kite-surface)",
         borderBottom: "1px solid var(--kite-border)",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
+        position: "sticky", top: 0, zIndex: 130,
       }}>
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "20px", flexShrink: 0 }}>
@@ -171,14 +194,18 @@ function Layout() {
           </NavLink>
         ))}
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Global search */}
         <GlobalSearch onOpen={setDrawerStock} />
 
+        {/* Ask Kite toggle */}
+        <div style={{ marginLeft: "10px" }}>
+          <AskKiteButton open={assistantOpen} onClick={() => setAssistantOpen((o) => !o)} />
+        </div>
+
         {/* Avatar */}
-        <div style={{ marginLeft: "12px" }}>
+        <div style={{ marginLeft: "10px" }}>
           <NavAvatar />
         </div>
       </nav>
@@ -195,7 +222,7 @@ function Layout() {
         </Routes>
       </main>
 
-      {/* Global company drawer — opened from search */}
+      {/* Global company drawer — opened from search or assistant */}
       {drawerStock && (
         <CompanyDrawer
           stock={drawerStock}
@@ -203,6 +230,14 @@ function Layout() {
           portfolioData={{}}
         />
       )}
+
+      {/* Assistant panel — persistent across all pages */}
+      <AssistantPanel
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        portfolioTickers={portfolioTickers}
+        onOpenStock={(stock) => { setDrawerStock(stock); }}
+      />
     </>
   );
 }
