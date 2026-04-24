@@ -28,7 +28,7 @@ from backend.db import get_pg_conn
 
 logger = logging.getLogger(__name__)
 
-STALE_MINUTES = 30
+STALE_MINUTES = 60
 
 
 def upsert_quotes(quotes: list[dict]) -> int:

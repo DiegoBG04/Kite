@@ -264,40 +264,45 @@ def get_batch_quotes(tickers: list[str]) -> list[dict]:
 
     logger.info(f"[BATCH_QUOTE] Fetching {len(missing)} tickers: {', '.join(missing)}")
 
-    def _fetch():
-        resp = requests.get(f"{TWELVE_BASE}/quote", params={
-            "symbol": ",".join(missing),
-            "apikey": api_key,
-        }, timeout=15)
-        resp.raise_for_status()
-        return resp.json()
-
-    raw = _api_call(_fetch)
-
-    # Top-level error (e.g. daily limit exceeded)
-    if isinstance(raw, dict) and raw.get("status") == "error":
-        logger.warning(f"[BATCH_QUOTE] API error: {raw.get('message')}")
-        return list(cached_results)  # return whatever we have cached
-
-    # Single ticker → dict directly; multiple → dict keyed by ticker
-    if len(missing) == 1:
-        raw = {missing[0]: raw}
-
+    # TwelveData charges 1 credit per symbol even in a batched /quote call.
+    # Chunk into groups of _RL_MAX (7) so we never exceed the 8/min limit.
     results = list(cached_results)
-    for ticker in missing:
-        payload = raw.get(ticker, {})
-        if payload.get("status") == "error":
-            logger.warning(f"[BATCH_QUOTE] Error for {ticker}: {payload.get('message')}")
-            continue
-        try:
-            result = _parse_quote_payload(ticker, payload)
-            # Derive P/E from price / EPS when TwelveData doesn't return it
-            if result["pe_ratio"] is None and result["eps"] and result["eps"] > 0:
-                result["pe_ratio"] = round(result["price"] / result["eps"], 2)
-            _quote_cache[ticker] = {"data": result, "expires": now + QUOTE_CACHE_TTL}
-            results.append(result)
-        except Exception as exc:
-            logger.warning(f"[BATCH_QUOTE] Skipping {ticker}: {exc}")
+    for i in range(0, len(missing), _RL_MAX):
+        chunk = missing[i : i + _RL_MAX]
+
+        def _fetch(syms=chunk):
+            resp = requests.get(f"{TWELVE_BASE}/quote", params={
+                "symbol": ",".join(syms),
+                "apikey": api_key,
+            }, timeout=15)
+            resp.raise_for_status()
+            return resp.json()
+
+        raw = _api_call(_fetch, credits=len(chunk))
+
+        # Top-level error (e.g. daily limit exceeded)
+        if isinstance(raw, dict) and raw.get("status") == "error":
+            logger.warning(f"[BATCH_QUOTE] API error: {raw.get('message')}")
+            continue  # skip this chunk, keep results from previous chunks
+
+        # Single ticker → dict directly; multiple → dict keyed by ticker
+        if len(chunk) == 1:
+            raw = {chunk[0]: raw}
+
+        for ticker in chunk:
+            payload = raw.get(ticker, {})
+            if payload.get("status") == "error":
+                logger.warning(f"[BATCH_QUOTE] Error for {ticker}: {payload.get('message')}")
+                continue
+            try:
+                result = _parse_quote_payload(ticker, payload)
+                # Derive P/E from price / EPS when TwelveData doesn't return it
+                if result["pe_ratio"] is None and result["eps"] and result["eps"] > 0:
+                    result["pe_ratio"] = round(result["price"] / result["eps"], 2)
+                _quote_cache[ticker] = {"data": result, "expires": now + QUOTE_CACHE_TTL}
+                results.append(result)
+            except Exception as exc:
+                logger.warning(f"[BATCH_QUOTE] Skipping {ticker}: {exc}")
 
     return results
 

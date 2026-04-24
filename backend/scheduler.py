@@ -31,6 +31,8 @@ MARKET_UNIVERSE = [
     "AVGO", "LRCX", "JPM", "GS", "V", "C", "BRK-B", "HD", "WMT", "PG",
     "LLY", "UNH", "MRK", "DHR", "ISRG", "CVX", "COP", "XOM", "BA", "GE",
     "HON", "MMM", "LMT", "RTX", "DE", "TMUS",
+    # Portfolio holdings
+    "NKE", "PLTR", "SPOT",
 ]
 
 
